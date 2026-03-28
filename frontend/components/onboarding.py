@@ -24,7 +24,7 @@ from backend.schemas.inputs import UserInputs
 from frontend.components.hero import get_logo_img_tag
 
 
-TOTAL_STEPS = 8   # steps 1-8, step 0 is welcome
+TOTAL_STEPS = 9   # steps 1-9, step 0 is welcome
 
 AMENITY_ICONS = {
     "mrt":        "🚇",
@@ -134,8 +134,10 @@ def render_onboarding() -> bool:
     elif step == 6:
         _render_amenity_ranking()
     elif step == 7:
-        _render_anchors()
+        _render_lifestyle()
     elif step == 8:
+        _render_anchors()
+    elif step == 9:
         _render_done()
         st.markdown("</div>", unsafe_allow_html=True)
         return True
@@ -424,11 +426,110 @@ def _render_amenity_ranking():
     _back_btn("amenity_back")
 
 
-# ── Step 7: Anchors (optional) ───────────────────────────────────────────────
 
-def _render_anchors():
+# ── Step 7: Lifestyle quiz ───────────────────────────────────────────────────
+
+LIFESTYLE_QUESTIONS = [
+    ("Which describes your typical evening?", [
+        ("🍜  Hawker food", {"hawker": 3}),
+        ("🛍️  Mall dinner",  {"retail": 3}),
+        ("🍳  Cook at home", {"hawker": 1}),
+    ]),
+    ("How do you usually commute?", [
+        ("🚇  MRT",        {"mrt": 3}),
+        ("🚌  Bus",        {"bus": 3}),
+        ("🚗  Car / Grab", {}),
+    ]),
+    ("What do you enjoy most on weekends?", [
+        ("🛍️  Shopping & cafés",  {"retail": 3}),
+        ("🍜  Food hunting",       {"hawker": 3}),
+        ("🏫  Family / kids time", {"schools": 3}),
+    ]),
+]
+
+
+def _render_lifestyle():
     _progress_bar(7)
     _step_label(7)
+
+    q_idx = st.session_state.get("lifestyle_q", 0)
+
+    if q_idx < len(LIFESTYLE_QUESTIONS):
+        q, opts = LIFESTYLE_QUESTIONS[q_idx]
+        _heading("Your lifestyle", q)
+
+        # Sub-progress dots
+        dots_html = "<div style='display:flex;gap:6px;justify-content:center;margin-bottom:1.4rem;'>"
+        for i in range(len(LIFESTYLE_QUESTIONS)):
+            if i < q_idx:
+                col = ACCENT
+                w = "16px"
+                r = "3px"
+            elif i == q_idx:
+                col = ACCENT
+                w = "24px"
+                r = "3px"
+            else:
+                col = "#e2e8f0"
+                w = "8px"
+                r = "50%"
+            dots_html += f"<div style='width:{w};height:8px;border-radius:{r};background:{col};transition:all 0.2s;'></div>"
+        dots_html += "</div>"
+        st.markdown(dots_html, unsafe_allow_html=True)
+
+        cols = st.columns(len(opts))
+        for i, (label, score) in enumerate(opts):
+            with cols[i]:
+                if st.button(label, key=f"ls_q{q_idx}_{i}", use_container_width=True):
+                    # Accumulate lifestyle weights into amenity rank boosts
+                    existing = st.session_state.get("lifestyle_boosts", {})
+                    for k, v in score.items():
+                        existing[k] = existing.get(k, 0) + v
+                    st.session_state["lifestyle_boosts"] = existing
+                    st.session_state["lifestyle_q"] = q_idx + 1
+                    st.rerun()
+
+        # Back within lifestyle sub-steps
+        if q_idx > 0:
+            st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
+            if st.button("← Previous question", key=f"ls_back_{q_idx}"):
+                st.session_state["lifestyle_q"] = q_idx - 1
+                st.rerun()
+
+    else:
+        # All lifestyle questions answered — show summary and continue
+        _heading("Lifestyle captured ✓", "We'll use this to fine-tune your recommendations.")
+
+        boosts = st.session_state.get("lifestyle_boosts", {})
+        if boosts:
+            top = sorted(boosts.items(), key=lambda x: -x[1])
+            summary_parts = []
+            for k, v in top[:2]:
+                icon = AMENITY_ICONS.get(k, "")
+                label = {"mrt": "MRT access", "bus": "bus routes", "healthcare": "healthcare",
+                         "schools": "schools", "hawker": "hawker food", "retail": "shopping"}.get(k, k)
+                summary_parts.append(f"{icon} {label}")
+            if summary_parts:
+                st.markdown(
+                    f"<p style='font-size:0.88rem;color:#64748b;text-align:center;"
+                    f"margin-bottom:1.4rem;'>Top priorities detected: "
+                    f"<strong style='color:#0b132d;'>{' · '.join(summary_parts)}</strong></p>",
+                    unsafe_allow_html=True,
+                )
+
+        if _next_btn("Next →", key="lifestyle_next"):
+            st.session_state["lifestyle_q"] = 0  # reset for next time
+            st.session_state.onboarding_step = 8
+            st.rerun()
+
+    _back_btn("lifestyle_step_back")
+
+
+# ── Step 8: Anchors (optional) ───────────────────────────────────────────────
+
+def _render_anchors():
+    _progress_bar(8)
+    _step_label(8)
     _heading("Any anchor locations?",
              "Optional: add up to 2 postal codes (workplace, parents, etc.) "
              "so we can factor proximity into your deck.")
@@ -447,20 +548,20 @@ def _render_anchors():
     with cols[0]:
         if st.button("Skip this step", key="anchor_skip", use_container_width=True):
             st.session_state.pref_landmark_postals = []
-            st.session_state.onboarding_step = 8
+            st.session_state.onboarding_step = 9
             st.rerun()
     with cols[1]:
         if st.button("Save & continue →", key="anchor_next",
                      type="primary", use_container_width=True):
             postals = [p.strip() for p in [v1, v2] if p.strip()]
             st.session_state.pref_landmark_postals = postals
-            st.session_state.onboarding_step = 8
+            st.session_state.onboarding_step = 9
             st.rerun()
 
     _back_btn("anchor_back")
 
 
-# ── Step 8: Done / trigger search ────────────────────────────────────────────
+# ── Step 9: Done / trigger search ────────────────────────────────────────────
 
 def _render_done():
     """

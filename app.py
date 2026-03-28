@@ -1,11 +1,11 @@
 """
-app.py — NestWise SG (Redesigned)
+app.py — HomeRun SG
 
 Flow:
-  1. Auth gate     → must create account / log in before anything else
+  1. Landing page  → "Get Started" opens an auth dialog (create account / log in)
   2. Onboarding    → step-by-step preferences
   3. Auto-search   → deck generated from prefs
-  4. Discover      → swipe deck IS the primary screen (sidebar collapsed)
+  4. Discover      → swipe deck (primary screen)
   5. Saved         → cross-session saved flats
   6. Compare       → side-by-side comparison
   7. Account       → preferences + session history
@@ -14,6 +14,7 @@ Flow:
 import streamlit as st
 from pathlib import Path
 
+
 def _resolve_logo() -> str:
     base = Path(__file__).parent / "frontend" / "assets"
     for name in ("homerunlogo.png", "homerunlogo.jpeg"):
@@ -21,6 +22,7 @@ def _resolve_logo() -> str:
         if p.exists():
             return str(p)
     return ""
+
 
 _LOGO_PATH = _resolve_logo()
 
@@ -61,20 +63,80 @@ st.set_page_config(
 PAGES = ["Discover", "Saved", "Compare", "Account"]
 
 
+# ── Auth dialog ───────────────────────────────────────────────────────────────
+
+@st.dialog("Welcome to HomeRun", width="small")
+def _show_auth_dialog(initial_tab: str = "create"):
+    """Cancellable popup for account creation and login."""
+    st.markdown(
+        f"""
+        <div style="text-align:center;margin-bottom:1.4rem;">
+            <div style="display:inline-block;border-radius:20px;overflow:hidden;
+                        box-shadow:0 4px 20px rgba(255,68,88,0.18);margin-bottom:0.9rem;">
+                {get_logo_img_tag(64)}
+            </div>
+            <p style="font-size:0.88rem;color:#6b7280;margin:0;">
+                Your personalised HDB flat finder
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    create_tab, login_tab = st.tabs(["Create account", "Log in"])
+
+    with create_tab:
+        email    = st.text_input("Email", placeholder="you@email.com",
+                                 key="dialog_create_email")
+        password = st.text_input("Password", type="password",
+                                 placeholder="Choose a password",
+                                 key="dialog_create_password")
+        st.markdown("<div style='height:0.2rem'></div>", unsafe_allow_html=True)
+        if st.button("Create account & get started →", type="primary",
+                     use_container_width=True, key="dialog_create_btn"):
+            if not email or not password:
+                st.warning("Please fill in both fields.")
+            elif email in st.session_state.users:
+                st.warning("An account with this email already exists. Try logging in.")
+            else:
+                st.session_state.users[email] = {"password": password}
+                st.session_state.user_histories[email] = []
+                st.session_state.current_user = email
+                st.rerun()
+
+    with login_tab:
+        l_email    = st.text_input("Email", key="dialog_login_email")
+        l_password = st.text_input("Password", type="password",
+                                   key="dialog_login_password")
+        st.markdown("<div style='height:0.2rem'></div>", unsafe_allow_html=True)
+        if st.button("Log in →", type="primary",
+                     use_container_width=True, key="dialog_login_btn"):
+            users = st.session_state.users
+            if l_email in users and users[l_email]["password"] == l_password:
+                st.session_state.current_user = l_email
+                st.rerun()
+            else:
+                st.error("Invalid email or password.")
+
+    st.markdown(
+        "<p style='text-align:center;font-size:0.72rem;color:#b0b0c0;"
+        "margin-top:1rem;'>Your data stays in this browser session only.</p>",
+        unsafe_allow_html=True,
+    )
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main():
     init_session_state()
     inject_css()
 
-    # -- NEW LOGIC: Show Landing Page first if not logged in --
+    # ── 1. Auth gate ──────────────────────────────────────────────────────────
     if not st.session_state.get("current_user"):
-        # Check if the user has clicked "Get Started" to see the login/signup
-        if not st.session_state.get("show_auth_wall", False):
-            _render_landing_page()
-        else:
-            _render_auth_gate()
+        _render_landing_page()
         return
 
-    # ── 2. Sidebar (always render before content) ─────────────────────────────
+    # ── 2. Sidebar ────────────────────────────────────────────────────────────
     _render_sidebar()
     page = st.session_state.active_page
 
@@ -93,115 +155,40 @@ def main():
     elif page == "Account":
         render_account_page()
 
+
+# ── Landing page ──────────────────────────────────────────────────────────────
+
 def _render_landing_page():
-    """Clean intro page — logo, tagline, Get Started button. No sidebar."""
+    """Clean landing page — logo, tagline, Get Started / Log in buttons."""
     st.markdown(
         f"""
-        <div style="max-width:440px;margin:0 auto;padding:5rem 1rem 0;text-align:center;">
+        <div style="max-width:420px;margin:0 auto;padding:5rem 1rem 0;text-align:center;">
             <div style="display:inline-block;border-radius:24px;overflow:hidden;
-                        box-shadow:0 0 0 1px rgba(255,68,88,0.1),0 12px 36px rgba(255,68,88,0.16);
+                        box-shadow:0 0 0 1px rgba(255,68,88,0.1),
+                                   0 12px 36px rgba(255,68,88,0.16);
                         margin-bottom:1.4rem;">
                 {get_logo_img_tag(96)}
             </div>
             <h1 style="font-family:'DM Sans',sans-serif;font-size:2.2rem;font-weight:800;
                        letter-spacing:-0.045em;color:#0b132d;margin:0 0 0.5rem;">HomeRun</h1>
             <p style="font-size:0.95rem;color:#94a3b8;font-weight:500;margin-bottom:2.5rem;">
-                Find the fair price of your dream flat.
+                Find the fair price of your dream HDB flat.
             </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    _, mid, _ = st.columns([1, 2, 1])
-    with mid:
-        if st.button("Get Started →", type="primary", use_container_width=True,
-                     key="landing_get_started"):
-            st.session_state.show_auth_wall = True
-            st.rerun()
-
-# ── Auth gate (replaces entire screen) ───────────────────────────────────────
-
-def _render_auth_gate():
-    """
-    Full-screen auth wall shown before anything else.
-    Users must create an account or log in to proceed.
-    """
-    st.markdown(
-        f"""
-        <div style="max-width:440px;margin:0 auto;padding:3.5rem 1rem 0;">
-            <div style="text-align:center;margin-bottom:2.5rem;">
-                <div style="position:relative;display:inline-block;margin-bottom:1rem;">
-                    <div style="position:absolute;inset:-8px;border-radius:30px;
-                                background:conic-gradient(from 0deg,rgba(255,68,88,0.5),rgba(255,107,107,0.15),rgba(255,68,88,0.5));
-                                animation:spin 8s linear infinite;"></div>
-                    <div style="position:absolute;inset:-2px;border-radius:24px;background:#fafafa;"></div>
-                    <div style="position:relative;z-index:1;border-radius:22px;overflow:hidden;
-                                background:#fff;
-                                box-shadow:0 0 0 1px rgba(255,68,88,0.1),0 12px 36px rgba(255,68,88,0.16);">
-                        {get_logo_img_tag(96)}
-                    </div>
-                </div>
-                <style>@keyframes spin{{to{{transform:rotate(360deg)}}}}</style>
-                <h1 style="font-family:'DM Sans',sans-serif;font-size:2rem;font-weight:800;
-                           letter-spacing:-0.045em;color:#0b132d;
-                           margin-bottom:0.4rem;margin-top:0.9rem;">HomeRun</h1>
-                <p style="font-size:0.93rem;color:#94a3b8;margin:0;font-weight:500;">
-                    Create a free account to start discovering flats.
-                </p>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if st.button("← Back"):
-        st.session_state.show_auth_wall = False
-        st.rerun()
 
     _, mid, _ = st.columns([1, 2, 1])
     with mid:
-        mode = st.radio(
-            "Mode",
-            ["Create account", "Log in"],
-            horizontal=True,
-            label_visibility="collapsed",
-        )
-
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-
-        if mode == "Create account":
-            email    = st.text_input("Email", placeholder="you@email.com", key="gate_email")
-            password = st.text_input("Password", type="password",
-                                     placeholder="Choose a password", key="gate_password")
-            st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
-            if st.button("Create account & get started →", type="primary",
-                         use_container_width=True):
-                if not email or not password:
-                    st.warning("Please fill in both fields.")
-                elif email in st.session_state.users:
-                    st.warning("An account with this email already exists. Try logging in.")
-                else:
-                    st.session_state.users[email] = {"password": password}
-                    st.session_state.user_histories[email] = []
-                    st.session_state.current_user = email
-                    st.success(f"Welcome to HomeRun, {email.split('@')[0]}! 🎉")
-                    st.rerun()
-
-        else:  # Log in
-            email    = st.text_input("Email", key="gate_login_email")
-            password = st.text_input("Password", type="password", key="gate_login_password")
-            st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
-            if st.button("Log in →", type="primary", use_container_width=True):
-                users = st.session_state.users
-                if email in users and users[email]["password"] == password:
-                    st.session_state.current_user = email
-                    st.rerun()
-                else:
-                    st.error("Invalid email or password.")
+        if st.button("Get Started →", type="primary",
+                     use_container_width=True, key="landing_get_started"):
+            _show_auth_dialog()
 
         st.markdown(
-            "<p style='text-align:center;font-size:0.76rem;color:#b0b0c0;"
-            "margin-top:1rem;'>Your data stays in this session only.</p>",
+            "<p style='text-align:center;font-size:0.78rem;color:#b0b0c0;"
+            "margin-top:0.7rem;'>Already have an account? "
+            "Click Get Started and switch to Log in.</p>",
             unsafe_allow_html=True,
         )
 
@@ -214,27 +201,27 @@ _PAGE_ICONS = {"Discover": "🔥", "Saved": "♥", "Compare": "⚖️", "Account
 def _render_sidebar():
     from frontend.state.session import get_active_session
 
-    # ── Logo header ───────────────────────────────────────────────────────────
+    # Logo
     try:
         st.logo(_LOGO_PATH, size="large")
     except Exception:
-        pass  # older Streamlit versions don't support st.logo
+        pass
 
-    # Inject a custom logo+wordmark block below the st.logo for visual impact
-    logo_html = get_logo_img_tag(64)
+    logo_html = get_logo_img_tag(56)
     st.sidebar.markdown(
         f"""
-        <div style="padding:1.4rem 1.1rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.08);
-                    display:flex;align-items:center;gap:12px;">
-            <div style="flex-shrink:0;border-radius:16px;overflow:hidden;
-                        box-shadow:0 4px 16px rgba(255,68,88,0.22);">
+        <div style="padding:1.2rem 1.1rem 0.9rem;
+                    border-bottom:1px solid rgba(255,255,255,0.07);
+                    display:flex;align-items:center;gap:11px;">
+            <div style="flex-shrink:0;border-radius:14px;overflow:hidden;
+                        box-shadow:0 4px 14px rgba(255,68,88,0.22);">
                 {logo_html}
             </div>
             <div>
-                <div style="font-family:'DM Sans',sans-serif;font-size:1.05rem;font-weight:800;
-                            color:#fff;letter-spacing:-0.03em;line-height:1;">HomeRun</div>
-                <div style="font-size:0.68rem;color:rgba(255,255,255,0.40);
-                            font-weight:600;letter-spacing:0.04em;margin-top:3px;">
+                <div style="font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:800;
+                            color:#fff;letter-spacing:-0.03em;line-height:1.1;">HomeRun</div>
+                <div style="font-size:0.65rem;color:rgba(255,255,255,0.35);
+                            font-weight:600;letter-spacing:0.05em;margin-top:3px;">
                     SG Flat Finder
                 </div>
             </div>
@@ -243,28 +230,11 @@ def _render_sidebar():
         unsafe_allow_html=True,
     )
 
-    user    = st.session_state.get("current_user", "")
-    initial = user[0].upper() if user else "?"
-    uname   = user.split("@")[0] if "@" in user else user
-
-    # ── Profile card ──────────────────────────────────────────────────────────
+    # ── Nav ───────────────────────────────────────────────────────────────────
     st.sidebar.markdown(
-        f"""
-        <div class="nw-profile-card">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <div class="nw-avatar">{initial}</div>
-                <div>
-                    <div class="nw-profile-name">{uname}</div>
-                    <div class="nw-profile-sub">🔥 Active searcher</div>
-                </div>
-            </div>
-        </div>
-        """,
+        '<div class="nw-side-nav-label">Navigate</div>',
         unsafe_allow_html=True,
     )
-
-    # ── Nav ───────────────────────────────────────────────────────────────────
-    st.sidebar.markdown('<div class="nw-side-nav-label">Navigate</div>', unsafe_allow_html=True)
 
     nav_display = [f"{_PAGE_ICONS[p]}  {p}" for p in PAGES]
     displayed   = st.sidebar.radio(
@@ -295,7 +265,7 @@ def _render_sidebar():
                 <div class="nw-deck-label">Current deck</div>
                 <div class="nw-deck-session-name">{session['label']}</div>
                 <div class="nw-deck-ring-row">
-                    <svg width="76" height="76" viewBox="0 0 80 80">
+                    <svg width="72" height="72" viewBox="0 0 80 80">
                         <circle cx="40" cy="40" r="34" fill="none"
                                 stroke="rgba(255,255,255,0.10)" stroke-width="6"/>
                         <circle cx="40" cy="40" r="34" fill="none"
@@ -313,11 +283,13 @@ def _render_sidebar():
                             <span class="nw-deck-key">♥ saved</span>
                         </div>
                         <div class="nw-deck-ring-meta-item">
-                            <span class="nw-deck-big" style="color:rgba(255,255,255,0.9);">{n_unseen}</span>
+                            <span class="nw-deck-big"
+                                  style="color:rgba(255,255,255,0.9);">{n_unseen}</span>
                             <span class="nw-deck-key">left</span>
                         </div>
                         <div class="nw-deck-ring-meta-item">
-                            <span class="nw-deck-big" style="color:rgba(255,255,255,0.35);">{n_passed}</span>
+                            <span class="nw-deck-big"
+                                  style="color:rgba(255,255,255,0.35);">{n_passed}</span>
                             <span class="nw-deck-key">✕ passed</span>
                         </div>
                     </div>
@@ -335,6 +307,23 @@ def _render_sidebar():
             st.rerun()
         st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
+    # ── Logged-in-as footer ───────────────────────────────────────────────────
+    user  = st.session_state.get("current_user", "")
+    uname = user.split("@")[0] if "@" in user else user
+    st.sidebar.markdown(
+        f"""
+        <div style="padding:0.85rem 1.1rem 0.7rem;border-top:1px solid rgba(255,255,255,0.07);
+                    margin-top:auto;">
+            <div style="font-size:0.68rem;color:rgba(255,255,255,0.32);font-weight:600;">
+                Signed in as</div>
+            <div style="font-size:0.8rem;color:rgba(255,255,255,0.65);font-weight:600;
+                        margin-top:2px;white-space:nowrap;overflow:hidden;
+                        text-overflow:ellipsis;">{uname}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 # ── Onboarding ────────────────────────────────────────────────────────────────
 
@@ -349,7 +338,7 @@ def _run_onboarding():
         st.rerun()
 
 
-# ── Discover — deck is the FIRST and primary tab ──────────────────────────────
+# ── Discover ──────────────────────────────────────────────────────────────────
 
 def _render_discover():
     from frontend.state.session import get_active_session
@@ -363,7 +352,6 @@ def _render_discover():
     inputs     = session["inputs"]
     map_bundle = session["map_bundle"]
 
-    # ── Sub-tabs ──────────────────────────────────────────────────────────────
     deck_tab, insights_tab, map_tab = st.tabs([
         "🃏 Discover",
         "📊 Insights",
@@ -391,18 +379,17 @@ def _render_discover():
 
 
 def _render_value_strip(bundle: dict, inputs):
-    """Compact one-line summary strip shown above the deck — not a full dashboard."""
-    pred    = bundle.get("predicted_price", 0)
-    budget  = inputs.budget
-    diff    = ((budget - pred) / pred * 100) if pred else 0
-    sign    = "+" if diff >= 0 else ""
-    color   = "#059669" if diff >= 0 else "#e11d48"
-    bg      = "rgba(5,150,105,0.07)" if diff >= 0 else "rgba(225,29,72,0.07)"
-    border  = "rgba(5,150,105,0.20)" if diff >= 0 else "rgba(225,29,72,0.20)"
+    pred   = bundle.get("predicted_price", 0)
+    budget = inputs.budget
+    diff   = ((budget - pred) / pred * 100) if pred else 0
+    sign   = "+" if diff >= 0 else ""
+    color  = "#059669" if diff >= 0 else "#e11d48"
+    bg     = "rgba(5,150,105,0.07)" if diff >= 0 else "rgba(225,29,72,0.07)"
+    border = "rgba(5,150,105,0.20)" if diff >= 0 else "rgba(225,29,72,0.20)"
 
     st.markdown(
         f"""
-        <div style="display:flex;align-items:center;gap:0;
+        <div style="display:flex;align-items:center;
                     background:#f8fafc;border:1px solid #eef2f7;border-radius:16px;
                     margin-bottom:6px;overflow:hidden;">
             <div style="flex:1;padding:10px 16px;">

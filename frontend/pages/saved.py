@@ -2,9 +2,9 @@
 frontend/pages/saved.py
 
 Shows all liked flats across all search sessions.
-Flats are grouped by session so users can tell which preference set
-generated each result. Super-saved flats are highlighted.
-Users can select flats here and push them to the Comparison tab.
+Flats are grouped by session. Super-saved flats are highlighted.
+Users can click "View details" for full amenity/score breakdown,
+select flats for comparison, or remove them.
 """
 
 import pandas as pd
@@ -12,6 +12,7 @@ import streamlit as st
 
 from backend.utils.formatters import fmt_sgd, valuation_tag_html
 from frontend.state.session import get_liked_df
+from frontend.components.listing_detail import show_listing_detail
 
 
 def render_saved_page():
@@ -66,7 +67,11 @@ def render_saved_page():
     st.markdown("---")
 
     # ── Group by session ─────────────────────────────────────────────────────
-    sessions_in_saved = liked_df["session_label"].unique() if "session_label" in liked_df.columns else ["All"]
+    sessions_in_saved = (
+        liked_df["session_label"].unique()
+        if "session_label" in liked_df.columns
+        else ["All"]
+    )
 
     for session_label in sessions_in_saved:
         if "session_label" in liked_df.columns:
@@ -74,7 +79,6 @@ def render_saved_page():
         else:
             session_df = liked_df
 
-        # Session header
         super_count = int(session_df["is_super"].sum()) if "is_super" in session_df.columns else 0
         st.markdown(
             f"<div style='display:flex;align-items:center;gap:10px;margin:1rem 0 0.7rem;'>"
@@ -86,15 +90,14 @@ def render_saved_page():
         )
 
         for _, row in session_df.iterrows():
-            lid       = str(row["listing_id"])
-            is_super  = bool(row.get("is_super", False))
-            is_sel    = lid in selected_ids
-            tag       = valuation_tag_html(row.get("valuation_label", ""))
-            diff      = float(row.get("asking_vs_predicted_pct", 0))
+            lid      = str(row["listing_id"])
+            is_super = bool(row.get("is_super", False))
+            is_sel   = lid in selected_ids
+            tag      = valuation_tag_html(row.get("valuation_label", ""))
+            diff     = float(row.get("asking_vs_predicted_pct", 0))
             badge     = "⭐ Super" if is_super else "♥ Saved"
             badge_col = "#d97706" if is_super else "#059E87"
 
-            # Highlight if selected for compare
             border = "2px solid #059E87" if is_sel else "1px solid #e4e7ed"
             bg     = "#f0fdf9" if is_sel else "rgba(255,255,255,0.96)"
 
@@ -128,21 +131,22 @@ def render_saved_page():
                 unsafe_allow_html=True,
             )
 
-            btn_label = "✓ Selected" if is_sel else "Select for compare"
-            btn_type  = "primary" if is_sel else "secondary"
-            col_a, col_b = st.columns([1, 1])
-            with col_a:
-                if st.button(btn_label, key=f"sel_{lid}",
-                             use_container_width=True):
+            btn_a, btn_b, btn_c = st.columns([1.3, 1, 1])
+            with btn_a:
+                if st.button("View details →", key=f"detail_{lid}",
+                             use_container_width=True, type="primary"):
+                    show_listing_detail(lid)
+            with btn_b:
+                sel_label = "✓ Selected" if is_sel else "Select"
+                if st.button(sel_label, key=f"sel_{lid}", use_container_width=True):
                     cur = st.session_state.compare_selected_ids
                     if is_sel:
                         st.session_state.compare_selected_ids = [x for x in cur if x != lid]
                     else:
                         st.session_state.compare_selected_ids = cur + [lid]
                     st.rerun()
-            with col_b:
+            with btn_c:
                 if st.button("Remove", key=f"rm_{lid}", use_container_width=True):
-                    # Remove from all sessions
                     for s in st.session_state.search_sessions:
                         if lid in s["liked_ids"]:
                             s["liked_ids"].remove(lid)

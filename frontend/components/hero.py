@@ -90,20 +90,23 @@ html,body{{width:100%;font-family:'DM Sans',-apple-system,sans-serif;background:
   </div>
   <div class="wordmark">HomeRun &middot; Singapore</div>
   <div class="title">Find the <span class="accent">fair&nbsp;price</span><br>of your dream flat</div>
-  <div class="sub">Compare asking prices against modelled fair value and recent transacted benchmarks — then explore every neighbourhood in detail.</div>
-  <div class="ticker-wrap">
-    <div class="ticker-track">
-      <div class="ticker-item"><span class="ticker-num">23</span><div class="ticker-div"></div><span class="ticker-label">HDB towns analysed across Singapore</span></div>
-      <div class="ticker-item"><span class="ticker-num">S$0</span><div class="ticker-div"></div><span class="ticker-label">Cost to find your fair price estimate</span></div>
-      <div class="ticker-item"><span class="ticker-num">6+</span><div class="ticker-div"></div><span class="ticker-label">Amenity layers mapped around every flat</span></div>
-      <div class="ticker-item"><span class="ticker-num">23</span><div class="ticker-div"></div><span class="ticker-label">HDB towns analysed across Singapore</span></div>
+  <div class="sub">Swipe through personalised HDB recommendations, curated to match your lifestyle and budget.</div>
+  <div class="feature-cards" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:20px auto 24px;max-width:680px;">
+    <div style="flex:1;min-width:160px;max-width:200px;background:rgba(255,255,255,0.9);border:1px solid rgba(255,68,88,0.12);border-radius:18px;padding:20px 16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="font-size:1.8rem;margin-bottom:8px;">🎯</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:800;color:#0b132d;margin-bottom:6px;">Smart Quiz</div>
+      <div style="font-size:0.74rem;color:#64748b;font-weight:500;line-height:1.5;">Personality-style quiz that maps your lifestyle to ideal flats</div>
     </div>
-  </div>
-  <div class="chips">
-    <span class="chip">🔍 Price analysis</span>
-    <span class="chip">🗺️ Town matching</span>
-    <span class="chip">📍 Amenity map</span>
-    <span class="chip">⚖️ Flat comparison</span>
+    <div style="flex:1;min-width:160px;max-width:200px;background:rgba(255,255,255,0.9);border:1px solid rgba(255,68,88,0.12);border-radius:18px;padding:20px 16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="font-size:1.8rem;margin-bottom:8px;">💘</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:800;color:#0b132d;margin-bottom:6px;">Swipe to Save</div>
+      <div style="font-size:0.74rem;color:#64748b;font-weight:500;line-height:1.5;">Tinder-style swiping to shortlist your favourite flats</div>
+    </div>
+    <div style="flex:1;min-width:160px;max-width:200px;background:rgba(255,255,255,0.9);border:1px solid rgba(255,68,88,0.12);border-radius:18px;padding:20px 16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="font-size:1.8rem;margin-bottom:8px;">📊</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:800;color:#0b132d;margin-bottom:6px;">Compare</div>
+      <div style="font-size:0.74rem;color:#64748b;font-weight:500;line-height:1.5;">Side-by-side comparison of saved flats across all metrics</div>
+    </div>
   </div>
   <div class="cta-row">
     <a class="cta-primary" id="cta" href="#">Start your search <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8l5 5 5-5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>

@@ -18,6 +18,7 @@ import streamlit.components.v1 as components
 from backend.utils.formatters import fmt_sgd, valuation_tag_html
 from backend.utils.constants import TOWN_COORDS
 from frontend.state.session import get_active_session, record_swipe
+from frontend.components.listing_detail import show_listing_detail
 
 
 DEFAULT_COORD = (1.3521, 103.8198)
@@ -105,6 +106,29 @@ def render_listing_tab(listings_df: pd.DataFrame):
     liked_ids   = session["liked_ids"]
     passed_ids  = session["passed_ids"]
 
+    # ── Compact top-nav strip ──────────────────────────────────────────────
+    col_brand, col_saved, col_compare, col_account = st.columns([3, 1, 1, 1])
+    with col_brand:
+        st.markdown(
+            """<div style="font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:800;
+                color:#0b132d;letter-spacing:-0.02em;padding:6px 0;">🏠 HomeRun</div>""",
+            unsafe_allow_html=True,
+        )
+    with col_saved:
+        if st.button("♥ Saved", key="nav_saved", use_container_width=True):
+            st.session_state.active_page = "Saved"
+            st.rerun()
+    with col_compare:
+        if st.button("⚖️ Compare", key="nav_compare", use_container_width=True):
+            st.session_state.active_page = "Compare"
+            st.rerun()
+    with col_account:
+        if st.button("👤 Account", key="nav_account", use_container_width=True):
+            st.session_state.active_page = "Account"
+            st.rerun()
+
+    st.markdown("<hr style='margin:8px 0 12px;border:none;border-top:1px solid #f0f4f8;'>", unsafe_allow_html=True)
+
     # ── Deck exhausted ───────────────────────────────────────────────────────
     if not unseen_ids:
         _render_deck_done(session, listings_df)
@@ -119,11 +143,63 @@ def render_listing_tab(listings_df: pd.DataFrame):
     html = _build_swipe_html(cards_json)
     components.html(html, height=720, scrolling=False)
 
-    # ── Handle swipe events via query params trick ───────────────────────────
-    # Streamlit can't receive postMessage directly, so we use button callbacks
-    # as the action interface. The JS posts to parent; we provide button fallbacks.
+    # ── Match score bar + amenity badges (btogether-style) ──────────────────
+    top_card = None
+    if unseen_ids:
+        top_row = listings_df[listings_df["listing_id"] == unseen_ids[0]]
+        if not top_row.empty:
+            top_card = top_row.iloc[0]
+
+    if top_card is not None:
+        score = float(top_card.get("overall_value_score", 0))
+        color = "#059E87" if score >= 75 else "#d97706" if score >= 50 else "#FF4458"
+        st.markdown(
+            f"""<div style="margin:8px 0 10px;">
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+                     letter-spacing:0.08em;color:#94a3b8;margin-bottom:5px;">🎯 Match Score</div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="flex:1;height:8px;border-radius:4px;background:#f1f5f9;overflow:hidden;">
+                        <div style="width:{score}%;height:100%;background:{color};border-radius:4px;
+                             transition:width 0.4s;"></div>
+                    </div>
+                    <span style="font-weight:800;color:{color};font-size:0.88rem;min-width:2.8rem;">{score:.0f}%</span>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+        # Amenity badges row — pull from session amenity weights
+        amenity_scores = {k: float(top_card.get(f"{k}_score", 0)) for k in AMENITY_ICONS}
+        badges = ""
+        for key, icon in AMENITY_ICONS.items():
+            val = amenity_scores.get(key, 0)
+            good = val >= 60
+            border = "#059E87" if good else "#d97706"
+            label = {"mrt": "MRT", "bus": "Bus", "healthcare": "Health",
+                     "schools": "Schools", "hawker": "Hawker", "retail": "Shops"}.get(key, key)
+            badges += (
+                f'<span style="display:inline-flex;align-items:center;gap:4px;'
+                f'padding:4px 9px;border-radius:999px;border:1.5px solid {border};'
+                f'font-size:0.72rem;font-weight:700;color:#334155;white-space:nowrap;">'
+                f'{icon} {label}</span>'
+            )
+        st.markdown(
+            f'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">{badges}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── Handle swipe events via button callbacks ─────────────────────────────
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-    _render_swipe_controls(session_id, unseen_ids[0] if unseen_ids else None)
+    top_id_for_controls = unseen_ids[0] if unseen_ids else None
+    _render_swipe_controls(session_id, top_id_for_controls)
+
+    # "View details" for the top card
+    if top_id_for_controls:
+        _, detail_col, _ = st.columns([2, 1.5, 2])
+        with detail_col:
+            if st.button("View details", key=f"deck_detail_{top_id_for_controls}",
+                         use_container_width=True):
+                show_listing_detail(top_id_for_controls)
 
     # ── Saved count banner ───────────────────────────────────────────────────
     if liked_ids or passed_ids:
@@ -266,6 +342,9 @@ def _render_saved_preview(session: dict, listings_df: pd.DataFrame):
             """,
             unsafe_allow_html=True,
         )
+        if st.button("View details →", key=f"preview_detail_{row['listing_id']}",
+                     use_container_width=True):
+            show_listing_detail(str(row["listing_id"]))
 
 
 def _build_swipe_html(cards_json: str) -> str:
