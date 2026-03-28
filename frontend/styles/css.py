@@ -39,10 +39,10 @@ def inject_css():
             --sidebar-bg:     #1a1a2e;
             --sidebar-hover:  rgba(255,255,255,0.06);
             --sidebar-active: rgba(255,68,88,0.18);
-            --sidebar-text:   rgba(255,255,255,0.65);
-            --sidebar-text-1: rgba(255,255,255,0.95);
-            --sidebar-text-3: rgba(255,255,255,0.32);
-            --sidebar-border: rgba(255,255,255,0.07);
+            --sidebar-text:   rgba(255,255,255,0.85);
+            --sidebar-text-1: rgba(255,255,255,0.97);
+            --sidebar-text-3: rgba(255,255,255,0.55);
+            --sidebar-border: rgba(255,255,255,0.12);
 
             /* white content area */
             --bg-page:        #ffffff;
@@ -145,20 +145,26 @@ def inject_css():
             display: none !important;
         }
 
-        /* sidebar buttons */
+        /* sidebar buttons — gradient pill (New search is the only sidebar button) */
         [data-testid="stSidebar"] .stButton > button {
-            background: rgba(255,255,255,0.08) !important;
-            border: 1px solid rgba(255,255,255,0.12) !important;
-            border-radius: 12px !important;
-            color: rgba(255,255,255,0.95) !important;
+            background: linear-gradient(135deg,#FF4458,#FF6B6B) !important;
+            border: none !important;
+            border-radius: 10px !important;
+            color: #ffffff !important;
             font-family: var(--font) !important;
-            font-size: 0.84rem !important;
+            font-size: 0.72rem !important;
             font-weight: 600 !important;
-            transition: background 0.15s !important;
+            letter-spacing: 0.01em !important;
+            padding: 0.35rem 0.9rem !important;
+            min-height: unset !important;
+            height: auto !important;
+            line-height: 1.4 !important;
+            box-shadow: 0 3px 10px rgba(255,68,88,0.28) !important;
+            transition: opacity 0.15s, transform 0.15s !important;
         }
         [data-testid="stSidebar"] .stButton > button:hover {
-            background: rgba(255,255,255,0.15) !important;
-            color: #ffffff !important;
+            opacity: 0.90 !important;
+            transform: translateY(-1px) !important;
         }
 
         /* sidebar markdown text */
@@ -331,6 +337,66 @@ def inject_css():
             box-shadow: 0 6px 20px rgba(255,68,88,0.35) !important;
         }
         [data-testid="stSidebar"] .nw-new-search .stButton > button:hover {
+            opacity: 0.92 !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+           SIDEBAR — HR-PREFIX CLASSES (app.py)
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+        .hr-side-nav-label {
+            font-family: var(--font);
+            font-size: 0.62rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.55) !important;
+            padding: 1rem 1rem 0.25rem;
+        }
+
+        .hr-deck-card {
+            margin: 0.7rem 0.85rem 0.5rem;
+            padding: 1rem 1rem 1.1rem;
+            background: rgba(255,68,88,0.08);
+            border: 1.5px solid rgba(255,107,107,0.45);
+            border-radius: 18px;
+            box-shadow: 0 2px 14px rgba(255,68,88,0.18);
+        }
+        .hr-deck-label {
+            font-family: var(--font); font-size: 0.57rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.13em;
+            color: rgba(255,107,107,0.80) !important;
+            margin-bottom: 2px;
+        }
+        .hr-deck-session-name {
+            font-family: var(--font); font-size: 0.82rem; font-weight: 700;
+            color: rgba(255,255,255,0.92) !important;
+            margin-bottom: 0.9rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .hr-deck-ring-row { display: flex; align-items: center; gap: 14px; }
+        .hr-deck-ring-meta { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .hr-deck-ring-meta-item { display: flex; align-items: baseline; gap: 7px; }
+        .hr-deck-big {
+            font-family: var(--font); font-size: 1.25rem; font-weight: 800;
+            letter-spacing: -0.04em; line-height: 1;
+        }
+        .hr-deck-key {
+            font-family: var(--font); font-size: 0.70rem; font-weight: 600;
+            color: rgba(255,255,255,0.60) !important;
+        }
+
+        /* hr- new search button */
+        .hr-new-search { padding: 0 0.85rem 0.6rem; }
+        [data-testid="stSidebar"] .hr-new-search .stButton > button {
+            background: linear-gradient(135deg,#FF4458,#FF6B6B) !important;
+            border: none !important;
+            color: rgba(255,255,255,0.95) !important;
+            font-weight: 600 !important;
+            font-size: 0.76rem !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 14px rgba(255,68,88,0.28) !important;
+            letter-spacing: 0.01em !important;
+        }
+        [data-testid="stSidebar"] .hr-new-search .stButton > button:hover {
             opacity: 0.92 !important;
             transform: translateY(-1px) !important;
         }
@@ -612,6 +678,9 @@ def inject_css():
         .stTabs [data-baseweb="tab"] { font-family:var(--font) !important; font-size:0.88rem !important; font-weight:600 !important; color:#64748b !important; }
         .stTabs [data-baseweb="tab-list"] { background:#f1f5f9 !important; border-radius:var(--radius) !important; padding:4px !important; border:1px solid #e8edf4 !important; gap:2px !important; }
         .stTabs [aria-selected="true"] { background:#fff !important; border-radius:12px !important; box-shadow:0 2px 8px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04) !important; color:#0b132d !important; }
+        /* Auth tabs — slightly larger, coral active state */
+        .stTabs [data-baseweb="tab-list"] { width:100% !important; }
+        .stTabs [data-baseweb="tab"] { flex:1 !important; justify-content:center !important; }
 
         /* Slider accent */
         .stSlider [data-testid="stSliderThumb"] { background:linear-gradient(135deg,#FF4458,#FF6B6B) !important; border:none !important; box-shadow:0 2px 10px rgba(255,68,88,0.40) !important; }

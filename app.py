@@ -278,7 +278,7 @@ html{overflow:hidden}body{font-family:'DM Sans',-apple-system,sans-serif;backgro
           <div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:22px;
                       padding:32px 28px;display:flex;gap:20px;align-items:flex-start;">
             <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;
-                        background:linear-gradient(135deg,#FF4458,#FF6B6B);
+                        background:#FFF0F1;border:1.5px solid rgba(255,68,88,0.20);
                         display:flex;align-items:center;justify-content:center;
                         font-size:1.4rem;">🎯</div>
             <div>
@@ -297,7 +297,7 @@ html{overflow:hidden}body{font-family:'DM Sans',-apple-system,sans-serif;backgro
           <div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:22px;
                       padding:32px 28px;display:flex;gap:20px;align-items:flex-start;">
             <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;
-                        background:linear-gradient(135deg,#FF4458,#FF6B6B);
+                        background:#FFF0F1;border:1.5px solid rgba(255,68,88,0.20);
                         display:flex;align-items:center;justify-content:center;
                         font-size:1.4rem;">💘</div>
             <div>
@@ -316,7 +316,7 @@ html{overflow:hidden}body{font-family:'DM Sans',-apple-system,sans-serif;backgro
           <div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:22px;
                       padding:32px 28px;display:flex;gap:20px;align-items:flex-start;">
             <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;
-                        background:linear-gradient(135deg,#FF4458,#FF6B6B);
+                        background:#FFF0F1;border:1.5px solid rgba(255,68,88,0.20);
                         display:flex;align-items:center;justify-content:center;
                         font-size:1.4rem;">💰</div>
             <div>
@@ -335,7 +335,7 @@ html{overflow:hidden}body{font-family:'DM Sans',-apple-system,sans-serif;backgro
           <div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:22px;
                       padding:32px 28px;display:flex;gap:20px;align-items:flex-start;">
             <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;
-                        background:linear-gradient(135deg,#FF4458,#FF6B6B);
+                        background:#FFF0F1;border:1.5px solid rgba(255,68,88,0.20);
                         display:flex;align-items:center;justify-content:center;
                         font-size:1.4rem;">⚖️</div>
             <div>

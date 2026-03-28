@@ -36,37 +36,65 @@ def render_account_page():
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 def _render_auth():
+    # ── Branded header ─────────────────────────────────────────────────────────
     st.markdown(
-        "<h2 style='font-size:1.65rem;font-weight:800;letter-spacing:-0.03em;"
-        "color:#0f172a;margin-bottom:1.2rem;'>Account</h2>",
+        """
+        <div style="text-align:center;padding:2.8rem 0 2rem;">
+            <div style="display:inline-flex;align-items:center;justify-content:center;
+                        width:60px;height:60px;border-radius:18px;
+                        background:linear-gradient(135deg,#FF4458,#FF6B6B);
+                        font-size:1.9rem;margin-bottom:1.1rem;box-shadow:0 8px 24px rgba(255,68,88,0.28);">
+                🏠
+            </div>
+            <h1 style="font-size:2rem;font-weight:800;letter-spacing:-0.04em;
+                       color:#1a1a2e;margin:0 0 0.45rem;">Welcome to HomeRun</h1>
+            <p style="font-size:0.9rem;color:#6b7280;margin:0;">
+                Your personalised HDB flat finder
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    login_tab, signup_tab = st.tabs(["Log in", "Sign up"])
 
-    with login_tab:
-        email    = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_password")
-        if st.button("Log in", type="primary", key="login_btn", use_container_width=True):
-            users = st.session_state.users
-            if email in users and users[email]["password"] == password:
-                st.session_state.current_user = email
-                st.success(f"Logged in as {email}")
-                st.rerun()
-            else:
-                st.error("Invalid email or password.")
+    # ── Centered form ──────────────────────────────────────────────────────────
+    _, col, _ = st.columns([1, 1.6, 1])
+    with col:
+        login_tab, signup_tab = st.tabs(["  Log in  ", "  Create account  "])
 
-    with signup_tab:
-        new_email    = st.text_input("Email", key="signup_email")
-        new_password = st.text_input("Password", type="password", key="signup_password")
-        if st.button("Create account", type="primary", key="signup_btn", use_container_width=True):
-            if not new_email or not new_password:
-                st.warning("Please fill in both fields.")
-            elif new_email in st.session_state.users:
-                st.warning("This account already exists.")
-            else:
-                st.session_state.users[new_email] = {"password": new_password}
-                st.session_state.user_histories[new_email] = []
-                st.success("Account created. You can now log in.")
+        with login_tab:
+            st.markdown("<div style='height:0.7rem'></div>", unsafe_allow_html=True)
+            email    = st.text_input("Email address", key="login_email",
+                                     placeholder="you@example.com")
+            password = st.text_input("Password", type="password", key="login_password",
+                                     placeholder="Your password")
+            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+            if st.button("Log in →", type="primary", key="login_btn",
+                         use_container_width=True):
+                users = st.session_state.users
+                if email in users and users[email]["password"] == password:
+                    st.session_state.current_user = email
+                    st.success(f"Welcome back, {email}!")
+                    st.rerun()
+                else:
+                    st.error("Incorrect email or password — please try again.")
+
+        with signup_tab:
+            st.markdown("<div style='height:0.7rem'></div>", unsafe_allow_html=True)
+            new_email    = st.text_input("Email address", key="signup_email",
+                                         placeholder="you@example.com")
+            new_password = st.text_input("Password", type="password", key="signup_password",
+                                         placeholder="Choose a strong password")
+            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+            if st.button("Create account →", type="primary", key="signup_btn",
+                         use_container_width=True):
+                if not new_email or not new_password:
+                    st.warning("Please fill in both fields.")
+                elif new_email in st.session_state.users:
+                    st.warning("An account with this email already exists.")
+                else:
+                    st.session_state.users[new_email] = {"password": new_password}
+                    st.session_state.user_histories[new_email] = []
+                    st.success("Account created — you can now log in! 🎉")
 
 
 # ── Logged-in view ────────────────────────────────────────────────────────────
