@@ -35,14 +35,14 @@ def inject_css():
             --grad:           linear-gradient(135deg, #FF4458 0%, #FF6B6B 100%);
             --grad-subtle:    linear-gradient(135deg, rgba(255,68,88,0.10) 0%, rgba(255,107,107,0.10) 100%);
 
-            /* dark sidebar */
-            --sidebar-bg:     #1a1a2e;
-            --sidebar-hover:  rgba(255,255,255,0.06);
-            --sidebar-active: rgba(255,68,88,0.18);
-            --sidebar-text:   rgba(255,255,255,0.85);
-            --sidebar-text-1: rgba(255,255,255,0.97);
-            --sidebar-text-3: rgba(255,255,255,0.55);
-            --sidebar-border: rgba(255,255,255,0.12);
+            /* dark sidebar — Apple near-black */
+            --sidebar-bg:     #111116;
+            --sidebar-hover:  rgba(255,255,255,0.05);
+            --sidebar-active: rgba(255,68,88,0.14);
+            --sidebar-text:   rgba(255,255,255,0.78);
+            --sidebar-text-1: rgba(255,255,255,0.96);
+            --sidebar-text-3: rgba(255,255,255,0.38);
+            --sidebar-border: rgba(255,255,255,0.06);
 
             /* white content area */
             --bg-page:        #ffffff;
@@ -116,30 +116,32 @@ def inject_css():
         /* radio nav */
         [data-testid="stSidebar"] .stRadio div[role="radiogroup"] {
             gap: 2px !important;
-            padding: 0.5rem 0.75rem !important;
+            padding: 0.35rem 0.7rem !important;
         }
         [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
             font-family: var(--font) !important;
-            font-size: 0.9rem !important;
+            font-size: 0.88rem !important;
             font-weight: 500 !important;
-            color: var(--sidebar-text) !important;
+            letter-spacing: -0.01em !important;
+            color: rgba(255,255,255,0.68) !important;
             background: transparent !important;
             border: none !important;
-            border-radius: 12px !important;
-            padding: 0.65rem 1rem !important;
+            border-radius: 10px !important;
+            padding: 0.68rem 0.95rem !important;
             margin: 0 !important;
-            transition: background 0.15s, color 0.15s !important;
+            transition: background 0.12s ease, color 0.12s ease !important;
             cursor: pointer !important;
             width: 100% !important;
         }
         [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {
-            background: var(--sidebar-hover) !important;
-            color: var(--sidebar-text-1) !important;
+            background: rgba(255,255,255,0.05) !important;
+            color: rgba(255,255,255,0.92) !important;
         }
         [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
-            background: var(--sidebar-active) !important;
-            color: #FF6B6B !important;
-            font-weight: 700 !important;
+            background: rgba(255,68,88,0.13) !important;
+            color: #FF7A7A !important;
+            font-weight: 600 !important;
+            box-shadow: inset 3px 0 0 #FF4458 !important;
         }
         [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child {
             display: none !important;
@@ -160,10 +162,10 @@ def inject_css():
             height: auto !important;
             line-height: 1.4 !important;
             box-shadow: 0 3px 10px rgba(255,68,88,0.28) !important;
-            transition: opacity 0.15s, transform 0.15s !important;
+            transition: opacity 0.12s ease, transform 0.12s ease !important;
         }
         [data-testid="stSidebar"] .stButton > button:hover {
-            opacity: 0.90 !important;
+            opacity: 0.88 !important;
             transform: translateY(-1px) !important;
         }
 
@@ -353,52 +355,90 @@ def inject_css():
         }
 
         .hr-deck-card {
-            margin: 0.7rem 0.85rem 0.5rem;
-            padding: 1rem 1rem 1.1rem;
-            background: rgba(255,68,88,0.08);
-            border: 1.5px solid rgba(255,107,107,0.45);
-            border-radius: 18px;
-            box-shadow: 0 2px 14px rgba(255,68,88,0.18);
+            margin: 0.55rem 0.75rem 0.4rem;
+            padding: 0.9rem 0.95rem 0.95rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06),
+                        0 1px 6px rgba(0,0,0,0.18);
         }
         .hr-deck-label {
-            font-family: var(--font); font-size: 0.57rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.13em;
-            color: rgba(255,107,107,0.80) !important;
-            margin-bottom: 2px;
+            font-family: var(--font); font-size: 0.55rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.14em;
+            color: rgba(255,255,255,0.30) !important;
+            margin-bottom: 3px;
         }
         .hr-deck-session-name {
-            font-family: var(--font); font-size: 0.82rem; font-weight: 700;
-            color: rgba(255,255,255,0.92) !important;
-            margin-bottom: 0.9rem;
+            font-family: var(--font); font-size: 0.80rem; font-weight: 600;
+            color: rgba(255,255,255,0.88) !important;
+            margin-bottom: 0.85rem;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            letter-spacing: -0.01em;
         }
-        .hr-deck-ring-row { display: flex; align-items: center; gap: 14px; }
-        .hr-deck-ring-meta { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .hr-deck-ring-meta-item { display: flex; align-items: baseline; gap: 7px; }
+        .hr-deck-ring-row { display: flex; align-items: center; gap: 12px; }
+        .hr-deck-ring-meta { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+        .hr-deck-ring-meta-item { display: flex; align-items: baseline; gap: 6px; }
         .hr-deck-big {
-            font-family: var(--font); font-size: 1.25rem; font-weight: 800;
+            font-family: var(--font); font-size: 1.2rem; font-weight: 800;
             letter-spacing: -0.04em; line-height: 1;
         }
         .hr-deck-key {
-            font-family: var(--font); font-size: 0.70rem; font-weight: 600;
-            color: rgba(255,255,255,0.60) !important;
+            font-family: var(--font); font-size: 0.67rem; font-weight: 500;
+            color: rgba(255,255,255,0.38) !important;
+            letter-spacing: 0.01em;
         }
 
         /* hr- new search button */
-        .hr-new-search { padding: 0 0.85rem 0.6rem; }
+        .hr-new-search { padding: 0 0.75rem 0.65rem; }
         [data-testid="stSidebar"] .hr-new-search .stButton > button {
             background: linear-gradient(135deg,#FF4458,#FF6B6B) !important;
             border: none !important;
-            color: rgba(255,255,255,0.95) !important;
+            color: #ffffff !important;
             font-weight: 600 !important;
-            font-size: 0.76rem !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 14px rgba(255,68,88,0.28) !important;
+            font-size: 0.74rem !important;
             letter-spacing: 0.01em !important;
+            border-radius: 10px !important;
+            padding: 0.45rem 1rem !important;
+            box-shadow: 0 3px 12px rgba(255,68,88,0.32) !important;
+            transition: opacity 0.12s ease, transform 0.12s ease !important;
         }
         [data-testid="stSidebar"] .hr-new-search .stButton > button:hover {
-            opacity: 0.92 !important;
+            opacity: 0.88 !important;
             transform: translateY(-1px) !important;
+        }
+
+        /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+           BUDGET NUMBER INPUT — big editable display
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+        [data-testid="stNumberInput"] input {
+            font-family: var(--font) !important;
+            font-size: 2.2rem !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.05em !important;
+            color: #0b132d !important;
+            text-align: center !important;
+            background: transparent !important;
+            border: none !important;
+            border-bottom: 2px solid rgba(255,68,88,0.18) !important;
+            border-radius: 0 !important;
+            padding: 0.1rem 0.4rem 0.25rem !important;
+            box-shadow: none !important;
+            transition: border-color 0.15s ease !important;
+        }
+        [data-testid="stNumberInput"] input:focus {
+            border-bottom-color: #FF4458 !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        /* hide the ▲▼ steppers — slider handles fine-tuning */
+        [data-testid="stNumberInput"] button {
+            display: none !important;
+        }
+        [data-testid="stNumberInput"] [data-testid="stNumberInputContainer"] {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
         }
 
         /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

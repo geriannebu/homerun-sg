@@ -510,34 +510,28 @@ def _render_sidebar():
     except Exception:
         pass
 
-    logo_html = get_logo_img_tag(56, use_icon=True)
+    logo_html = get_logo_img_tag(36, use_icon=True)
     st.sidebar.markdown(
         f"""
-        <div style="padding:1.2rem 1.1rem 0.9rem;
-                    border-bottom:1px solid rgba(255,255,255,0.07);
+        <div style="padding:1.3rem 1.1rem 1.1rem;
+                    border-bottom:1px solid rgba(255,255,255,0.06);
                     display:flex;align-items:center;gap:11px;">
-            <div style="flex-shrink:0;border-radius:14px;overflow:hidden;
-                        box-shadow:0 4px 14px rgba(255,68,88,0.22);">
+            <div style="flex-shrink:0;width:36px;height:36px;border-radius:10px;
+                        overflow:hidden;
+                        box-shadow:0 0 0 1px rgba(255,68,88,0.25),
+                                   0 0 14px rgba(255,68,88,0.30),
+                                   0 0 28px rgba(255,68,88,0.12);">
                 {logo_html}
             </div>
-            <div>
-                <div style="font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:800;
-                            color:#fff;letter-spacing:-0.03em;line-height:1.1;">HomeRun</div>
-                <div style="font-size:0.65rem;color:rgba(255,255,255,0.35);
-                            font-weight:600;letter-spacing:0.05em;margin-top:3px;">
-                    SG Flat Finder
-                </div>
-            </div>
+            <div style="font-family:'DM Sans',sans-serif;font-size:0.96rem;font-weight:800;
+                        color:rgba(255,255,255,0.94);letter-spacing:-0.03em;">HomeRun</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     # ── Nav ───────────────────────────────────────────────────────────────────
-    st.sidebar.markdown(
-        '<div class="hr-side-nav-label">Navigate</div>',
-        unsafe_allow_html=True,
-    )
+    st.sidebar.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
 
     nav_display = [f"{_PAGE_ICONS[p]}  {p}" for p in PAGES]
     displayed   = st.sidebar.radio(
@@ -606,6 +600,7 @@ def _render_sidebar():
         if st.sidebar.button("🔍  New search", use_container_width=True):
             st.session_state.onboarding_step     = 1
             st.session_state.onboarding_complete = False
+            st.session_state.done_confirmed      = False
             st.session_state.active_page         = "Discover"
             st.rerun()
         st.sidebar.markdown('</div>', unsafe_allow_html=True)
@@ -631,16 +626,33 @@ def _render_sidebar():
             unsafe_allow_html=True,
         )
     else:
-        uname = user.split("@")[0] if "@" in user else user
+        uname   = user.split("@")[0] if "@" in user else user
+        initial = uname[0].upper() if uname else "?"
         st.sidebar.markdown(
             f"""
-            <div style="padding:0.85rem 1.1rem 0.7rem;border-top:1px solid rgba(255,255,255,0.07);
-                        margin-top:auto;">
-                <div style="font-size:0.68rem;color:rgba(255,255,255,0.32);font-weight:600;">
-                    Signed in as</div>
-                <div style="font-size:0.8rem;color:rgba(255,255,255,0.65);font-weight:600;
-                            margin-top:2px;white-space:nowrap;overflow:hidden;
-                            text-overflow:ellipsis;">{uname}</div>
+            <div style="padding:0.8rem 1rem 0.75rem;
+                        border-top:1px solid rgba(255,255,255,0.06);
+                        display:flex;align-items:center;gap:9px;">
+                <div style="width:30px;height:30px;border-radius:50%;flex-shrink:0;
+                            background:linear-gradient(135deg,#FF4458,#FF6B6B);
+                            display:flex;align-items:center;justify-content:center;
+                            font-family:'DM Sans',sans-serif;font-size:0.72rem;
+                            font-weight:800;color:#fff;
+                            box-shadow:0 2px 8px rgba(255,68,88,0.35);">
+                    {initial}
+                </div>
+                <div style="overflow:hidden;">
+                    <div style="font-family:'DM Sans',sans-serif;font-size:0.78rem;
+                                font-weight:600;color:rgba(255,255,255,0.82);
+                                letter-spacing:-0.01em;white-space:nowrap;
+                                overflow:hidden;text-overflow:ellipsis;">
+                        {uname}
+                    </div>
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.30);
+                                font-weight:500;margin-top:1px;">
+                        HomeRun account
+                    </div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -657,6 +669,8 @@ def _run_onboarding():
             bundle     = get_prediction_bundle(inputs)
             map_bundle = get_map_bundle(inputs, bundle["recommendations_df"])
         create_search_session(inputs, bundle, map_bundle)
+        st.session_state.onboarding_complete = True
+        st.session_state.done_confirmed      = False  # reset for future new searches
         st.rerun()
 
 
