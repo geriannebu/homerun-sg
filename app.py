@@ -694,13 +694,24 @@ def _render_discover():
 
 
 def _render_value_strip(bundle: dict, inputs):
-    pred   = bundle.get("predicted_price", 0)
+    pred = bundle.get("predicted_price", 0)
     budget = inputs.budget
-    diff   = ((budget - pred) / pred * 100) if pred else 0
-    sign   = "+" if diff >= 0 else ""
-    color  = "#059669" if diff >= 0 else "#e11d48"
-    bg     = "rgba(5,150,105,0.07)" if diff >= 0 else "rgba(225,29,72,0.07)"
-    border = "rgba(5,150,105,0.20)" if diff >= 0 else "rgba(225,29,72,0.20)"
+
+    if budget is None:
+        budget_display = "Flexible"
+        diff = None
+        color = "#64748b"
+        bg = "rgba(100,116,139,0.07)"
+        border = "rgba(100,116,139,0.20)"
+        headroom_display = "No cap"
+    else:
+        diff = ((budget - pred) / pred * 100) if pred else 0
+        sign = "+" if diff >= 0 else ""
+        color = "#059669" if diff >= 0 else "#e11d48"
+        bg = "rgba(5,150,105,0.07)" if diff >= 0 else "rgba(225,29,72,0.07)"
+        border = "rgba(5,150,105,0.20)" if diff >= 0 else "rgba(225,29,72,0.20)"
+        budget_display = f"S${budget:,.0f}"
+        headroom_display = f"{sign}{diff:.1f}%"
 
     st.markdown(
         f"""
@@ -721,7 +732,7 @@ def _render_value_strip(bundle: dict, inputs):
                              letter-spacing:0.09em;color:#94a3b8;">Your budget</div>
                 <div style="font-size:1.0rem;font-weight:800;color:#0f172a;
                              letter-spacing:-0.025em;margin-top:1px;">
-                    S${budget:,.0f}
+                    {budget_display}
                 </div>
             </div>
             <div style="width:1px;height:36px;background:#e8edf4;flex-shrink:0;"></div>
@@ -730,7 +741,7 @@ def _render_value_strip(bundle: dict, inputs):
                              letter-spacing:0.09em;color:#94a3b8;">Headroom</div>
                 <div style="font-size:1.0rem;font-weight:800;color:{color};
                              letter-spacing:-0.025em;margin-top:1px;">
-                    {sign}{diff:.1f}%
+                    {headroom_display}
                 </div>
             </div>
         </div>

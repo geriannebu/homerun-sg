@@ -45,14 +45,17 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
     inputs          : UserInputs from the form
     ranking_profile : one of "amenity-first" | "balanced" | "value-first"
     """
-    predicted_price         = round(mock_predict_price(inputs))
+    predicted_price = round(mock_predict_price(inputs))
     recent_median_transacted = round(mock_recent_transaction_median(inputs))
 
     # Raw listings (may be empty in a real backend after hard filters)
     listings_df = mock_active_listings(inputs)
 
-    # Apply hard budget filter so no-match state is reachable
-    listings_df = listings_df[listings_df["asking_price"] <= inputs.budget].copy()
+    # Apply hard budget filter only if user set a budget
+    if inputs.budget is not None:
+        listings_df = listings_df[listings_df["asking_price"] <= inputs.budget].copy()
+    else:
+        listings_df = listings_df.copy()
 
     # Compute scores and rank
     if not listings_df.empty:
@@ -75,25 +78,25 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
         mock_recommend_towns(inputs) if not inputs.town else None
     )
 
-    mode       = "town" if inputs.town else "recommendation"
+    mode = "town" if inputs.town else "recommendation"
     mode_label = (
         f"Town mode: {inputs.town}" if inputs.town else "Recommendation mode"
     )
 
     return {
-        "predicted_price":         predicted_price,
+        "predicted_price": predicted_price,
         "recent_median_transacted": recent_median_transacted,
-        "confidence_low":          round(predicted_price * 0.96),
-        "confidence_high":         round(predicted_price * 1.04),
-        "recent_period":           "last 6 months",
-        "listings_df":             listings_df,
-        "recommendations_df":      recommendations_df,
-        "viable_listing_count":    viable_listing_count,
-        "median_asking_active":    median_asking_active,
-        "mode":                    mode,
-        "mode_label":              mode_label,
-        "ranking_profile":         ranking_profile,
-        "filter_report":           filter_report,
+        "confidence_low": round(predicted_price * 0.96),
+        "confidence_high": round(predicted_price * 1.04),
+        "recent_period": "last 6 months",
+        "listings_df": listings_df,
+        "recommendations_df": recommendations_df,
+        "viable_listing_count": viable_listing_count,
+        "median_asking_active": median_asking_active,
+        "mode": mode,
+        "mode_label": mode_label,
+        "ranking_profile": ranking_profile,
+        "filter_report": filter_report,
     }
 
 
@@ -102,11 +105,22 @@ def _build_filter_report(inputs: UserInputs, filtered_df, predicted_price: int) 
 
     Used by the no-match recovery UI.
     """
-    budget_gap = predicted_price - inputs.budget
+    if inputs.budget is None:
+        budget_ok = True
+        budget_gap = 0
+        suggested_budget = None
+        budget_set = False
+    else:
+        budget_gap = predicted_price - inputs.budget
+        budget_ok = inputs.budget >= predicted_price * 0.90
+        suggested_budget = round(predicted_price * 1.05 / 10000) * 10000
+        budget_set = True
+
     return {
-        "budget_ok":            inputs.budget >= predicted_price * 0.90,
+        "budget_set":           budget_set,
+        "budget_ok":            budget_ok,
         "budget_gap":           max(0, budget_gap),
-        "suggested_budget":     round(predicted_price * 1.05 / 10000) * 10000,
+        "suggested_budget":     suggested_budget,
         "flat_type":            inputs.flat_type,
         "floor_area_specified": inputs.floor_area_sqm > 35.0,
         "floor_area_sqm":       inputs.floor_area_sqm,

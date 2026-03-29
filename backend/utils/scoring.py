@@ -1,4 +1,5 @@
 import streamlit as st
+import numpy as np
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@ def classify_listing(row):
 # Full score pipeline
 # FinalScore = α · AmenityScore + (1−α) · ValueScore
 # ---------------------------------------------------------------------------
-def compute_listing_scores(listings_df, budget: int, amenity_weights: dict,
+def compute_listing_scores(listings_df, budget: int | None, amenity_weights: dict,
                            ranking_profile: str = "balanced"):
     """Return a scored + ranked copy of listings_df.
 
@@ -50,23 +51,29 @@ def compute_listing_scores(listings_df, budget: int, amenity_weights: dict,
     alpha = RANKING_ALPHA.get(ranking_profile, 0.50)
 
     # --- value score ---
-    df["budget_gap"]   = budget - df["asking_price"]
-    df["budget_score"] = df["budget_gap"].apply(
-        lambda x: max(0.0, min(100.0, 50.0 + x / 5000.0))
-    )
+    if budget is None:
+        # Flexible-budget mode: do not penalise listings based on budget
+        df["budget_gap"] = np.nan
+        df["budget_score"] = 50.0   # neutral middle score
+    else:
+        df["budget_gap"] = budget - df["asking_price"]
+        df["budget_score"] = df["budget_gap"].apply(
+            lambda x: max(0.0, min(100.0, 50.0 + x / 5000.0))
+        )
+
     df["value_score"] = (
         100.0 - df["asking_vs_predicted_pct"]
         .clip(lower=-20, upper=20)
         .abs()
         * 3.0
     )
+
     df["overall_value_score"] = (
         0.55 * df["value_score"] + 0.45 * df["budget_score"]
     ).round(1)
 
     # --- amenity score proxy ---
     # Real implementation would look up distances; mock uses weight average + jitter.
-    import numpy as np
     rng_base = (
         df["asking_price"].astype(int).apply(lambda p: p % 997)
         + df.index

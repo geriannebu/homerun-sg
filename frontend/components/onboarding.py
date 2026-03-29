@@ -495,6 +495,15 @@ def _render_budget():
     _step_label(1)
     _heading("What's your budget?", "We'll only show flats you can actually afford.")
 
+    if "pref_budget" not in st.session_state or st.session_state.pref_budget is None:
+        st.session_state.pref_budget = 650000
+
+    if "budget_slider_value" not in st.session_state or st.session_state.budget_slider_value is None:
+        st.session_state.budget_slider_value = st.session_state.pref_budget
+
+    if "budget_display_text" not in st.session_state or not st.session_state.budget_display_text:
+        st.session_state.budget_display_text = f"S${st.session_state.pref_budget:,.0f}"
+
     flexible = st.checkbox(
         "I have a flexible budget / prefer not to set one now",
         value=st.session_state.get("pref_budget_flexible", False),
@@ -512,32 +521,93 @@ def _render_budget():
             st.session_state.pref_budget = None
             st.session_state.onboarding_step = 2
             st.rerun()
+
     else:
         st.session_state.pref_budget_flexible = False
-        budget = st.slider(
-            "Budget",
-            min_value=200000,
-            max_value=1500000,
-            value=st.session_state.get("pref_budget") or 650000,
-            step=10000,
-            format="S$%d",
-            label_visibility="collapsed",
-        )
+
+        def _sync_from_slider():
+            val = int(st.session_state.budget_slider_value)
+            st.session_state.pref_budget = val
+            st.session_state.budget_display_text = f"S${val:,.0f}"
+
+        def _sync_from_display():
+            raw = str(st.session_state.budget_display_text).strip()
+            digits = "".join(ch for ch in raw if ch.isdigit())
+
+            if not digits:
+                val = st.session_state.pref_budget or 650000
+            else:
+                val = int(digits)
+
+            val = max(200000, min(1500000, val))
+            val = round(val / 10000) * 10000
+
+            st.session_state.pref_budget = val
+            st.session_state.budget_slider_value = val
+            st.session_state.budget_display_text = f"S${val:,.0f}"
+
+        # hide the ugly small helper text / labels and style big editable display
         st.markdown(
-            f"<div style='text-align:center;font-family:\"DM Sans\",sans-serif;"
-            f"font-size:2.4rem;font-weight:800;"
-            f"letter-spacing:-0.05em;color:#0b132d;margin:0.4rem 0 1.6rem;'>"
-            f"S${budget:,}</div>",
+            """
+            <style>
+            div[data-testid="stTextInput"] label {
+                display: none !important;
+            }
+
+            div[data-testid="stTextInput"] input {
+                text-align: center !important;
+                font-family: "DM Sans", sans-serif !important;
+                font-size: 2.4rem !important;
+                font-weight: 800 !important;
+                letter-spacing: -0.05em !important;
+                color: #0b132d !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding-top: 0.15rem !important;
+                padding-bottom: 0.15rem !important;
+            }
+
+            div[data-testid="stTextInput"] > div {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            div[data-testid="stTextInput"] > div > div {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+            </style>
+            """,
             unsafe_allow_html=True,
         )
 
+        st.slider(
+            "Budget",
+            min_value=200000,
+            max_value=1500000,
+            step=10000,
+            key="budget_slider_value",
+            on_change=_sync_from_slider,
+            label_visibility="collapsed",
+        )
+
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            st.text_input(
+                "Budget display",
+                key="budget_display_text",
+                on_change=_sync_from_display,
+                label_visibility="collapsed",
+            )
+
         if _next_btn(key="budget_next"):
-            st.session_state.pref_budget = budget
             st.session_state.onboarding_step = 2
             st.rerun()
 
     _back_btn("budget_back")
-
 
 # ── Step 2: Flat type ────────────────────────────────────────────────────────
 
