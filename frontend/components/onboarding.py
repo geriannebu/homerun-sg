@@ -296,9 +296,9 @@ def render_onboarding() -> bool:
     elif step == 8:
         _render_predicted_amenity_ranking()
     elif step == 9:
-        _render_done()
+        done = _render_done()
         st.markdown("</div>", unsafe_allow_html=True)
-        return True
+        return done
 
     st.markdown("</div>", unsafe_allow_html=True)
     return False
@@ -885,8 +885,111 @@ def _render_predicted_amenity_ranking():
     _back_btn("amenity_rank_back")
 
 
-def _render_done():
-    st.session_state.onboarding_complete = True
+def _render_done() -> bool:
+    """Completion splash — returns True when the user clicks the CTA."""
+    components.html(
+        """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;background:transparent;overflow:hidden;}
+@keyframes f1{0%,100%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(14px,-22px) rotate(10deg)}75%{transform:translate(-10px,14px) rotate(-7deg)}}
+@keyframes f2{0%,100%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(-18px,16px) rotate(-12deg)}67%{transform:translate(13px,-11px) rotate(8deg)}}
+@keyframes f3{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(11px,20px) rotate(15deg)}}
+@keyframes f4{0%,100%{transform:translate(0,0) rotate(0deg)}40%{transform:translate(-13px,-18px) rotate(-9deg)}80%{transform:translate(9px,9px) rotate(5deg)}}
+@keyframes f5{0%,100%{transform:translate(0,0) rotate(0deg)}30%{transform:translate(17px,11px) rotate(13deg)}70%{transform:translate(-15px,-13px) rotate(-8deg)}}
+@keyframes f6{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-9px,22px) rotate(-14deg)}}
+@keyframes up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{from{opacity:0;transform:scale(0.35) rotate(-8deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes shine{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.7}}
+.scene{
+  position:relative;width:100%;height:420px;overflow:hidden;
+  background:#ffffff;
+  border-radius:24px;
+}
+.glow{
+  position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);
+  width:480px;height:280px;
+  background:radial-gradient(ellipse,rgba(255,68,88,0.10) 0%,transparent 65%);
+  animation:pulse 4s ease-in-out infinite;pointer-events:none;
+}
+.p{position:absolute;line-height:1;}
+.centre{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:10;padding:1.5rem 2rem;text-align:center;
+}
+.hero-emoji{
+  font-size:4rem;line-height:1;margin-bottom:1rem;
+  animation:pop 0.75s cubic-bezier(0.22,1,0.36,1) both;animation-delay:0.1s;
+}
+.eyebrow{
+  font-size:0.62rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;
+  color:#FF4458;margin-bottom:0.75rem;
+  animation:up 0.5s ease both;animation-delay:0.35s;
+}
+.line1{
+  font-size:clamp(1.8rem,5vw,2.6rem);font-weight:800;letter-spacing:-0.05em;
+  color:#0b132d;line-height:1.05;margin-bottom:0.15rem;
+  animation:up 0.6s ease both;animation-delay:0.5s;
+}
+.line2{
+  font-size:clamp(1.8rem,5vw,2.6rem);font-weight:800;letter-spacing:-0.05em;
+  line-height:1.05;margin-bottom:1.2rem;
+  background:linear-gradient(120deg,#FF6B6B 0%,#FF4458 30%,#FFB347 60%,#FF6B6B 100%);
+  background-size:220% auto;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:up 0.6s ease both,shine 3.5s linear 1.3s infinite;animation-fill-mode:both;
+}
+.sub{
+  font-size:0.88rem;color:#6b7280;max-width:300px;
+  line-height:1.75;font-weight:500;
+  animation:up 0.6s ease both;animation-delay:0.78s;
+}
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="glow"></div>
+  <!-- floating emojis — same positions as welcome, colours work on white -->
+  <span class="p" style="top:7%;left:7%;font-size:2.4rem;opacity:0.55;animation:f1 7s ease-in-out infinite;">🏠</span>
+  <span class="p" style="top:19%;left:16%;font-size:1.3rem;opacity:0.35;animation:f3 10s ease-in-out infinite;animation-delay:-2.5s;">🌳</span>
+  <span class="p" style="top:5%;left:30%;font-size:1rem;opacity:0.22;animation:f2 12s ease-in-out infinite;animation-delay:-5s;">✨</span>
+  <span class="p" style="top:6%;right:9%;font-size:2.2rem;opacity:0.50;animation:f2 8.5s ease-in-out infinite;animation-delay:-1s;">🏡</span>
+  <span class="p" style="top:21%;right:18%;font-size:1.25rem;opacity:0.38;animation:f4 10.5s ease-in-out infinite;animation-delay:-3.5s;">🔑</span>
+  <span class="p" style="top:9%;right:33%;font-size:0.95rem;opacity:0.20;animation:f1 13s ease-in-out infinite;animation-delay:-7s;">💫</span>
+  <span class="p" style="top:43%;left:5%;font-size:1.8rem;opacity:0.42;animation:f5 9s ease-in-out infinite;animation-delay:-2s;">👨‍👩‍👧</span>
+  <span class="p" style="top:63%;left:11%;font-size:1.1rem;opacity:0.30;animation:f3 13.5s ease-in-out infinite;animation-delay:-6s;">🪴</span>
+  <span class="p" style="top:41%;right:5%;font-size:1.9rem;opacity:0.40;animation:f4 8s ease-in-out infinite;animation-delay:-4s;">🛋️</span>
+  <span class="p" style="top:63%;right:13%;font-size:1.05rem;opacity:0.28;animation:f6 11.5s ease-in-out infinite;animation-delay:-8s;">💕</span>
+  <span class="p" style="bottom:14%;left:8%;font-size:1.5rem;opacity:0.38;animation:f2 9s ease-in-out infinite;animation-delay:-1.8s;">🏘️</span>
+  <span class="p" style="bottom:12%;right:10%;font-size:1.6rem;opacity:0.36;animation:f1 7.5s ease-in-out infinite;animation-delay:-4.5s;">🌿</span>
+  <span class="p" style="bottom:25%;left:25%;font-size:0.85rem;opacity:0.16;animation:f5 15s ease-in-out infinite;animation-delay:-9s;">✨</span>
+  <span class="p" style="bottom:22%;right:27%;font-size:0.85rem;opacity:0.16;animation:f3 12.5s ease-in-out infinite;animation-delay:-10s;">💫</span>
+  <span class="p" style="bottom:8%;left:42%;font-size:1rem;opacity:0.22;animation:f6 10s ease-in-out infinite;animation-delay:-3s;">🛏️</span>
+  <div class="centre">
+    <div class="hero-emoji">🎉</div>
+    <div class="eyebrow">HomeRun · Singapore</div>
+    <div class="line1">Your preferences are in.</div>
+    <div class="line2">Time to find your flat.</div>
+    <p class="sub">We'll rank every active listing against your priorities and build your personalised deck.</p>
+  </div>
+</div>
+</body>
+</html>""",
+        height=435,
+        scrolling=False,
+    )
+    col = st.columns([1, 2, 1])[1]
+    with col:
+        if st.button("Show me my flats →", key="done_cta", type="primary", use_container_width=True):
+            return True
+    return False
 
 
 def build_inputs_from_prefs() -> UserInputs:
