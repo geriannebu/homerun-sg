@@ -523,55 +523,151 @@ def _render_budget():
 def _render_flat_type():
     _progress_bar(2)
     _step_label(2)
-    _heading("What type of flat?", "Choose the size that works for you.")
+    _heading("What type of flat?", "Pick one or more — tap to select, tap again to deselect.")
 
-    current = st.session_state.get("pref_flat_type") or "4 ROOM"
+    # Multi-select: stored as a list in pref_flat_types
+    selected_types: list = list(st.session_state.get("pref_flat_types") or ["4 ROOM"])
 
     cols = st.columns(len(FLAT_TYPES))
     for i, ft in enumerate(FLAT_TYPES):
-        selected = current == ft
+        is_selected = ft in selected_types
         with cols[i]:
             if st.button(
                 f"{FLAT_ICONS[ft]} {FLAT_TYPE_LABELS[ft]}",
                 key=f"ft_{ft}",
                 use_container_width=True,
-                type="primary" if selected else "secondary",
+                type="primary" if is_selected else "secondary",
             ):
-                st.session_state.pref_flat_type = ft
+                if is_selected and len(selected_types) > 1:
+                    selected_types.remove(ft)
+                elif not is_selected:
+                    selected_types.append(ft)
+                st.session_state.pref_flat_types = selected_types
+                # Reset the floor area manual flag so it re-auto-populates
+                st.session_state.pref_floor_area_sqft_manual = False
                 st.rerun()
 
-    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    # Live selection summary
+    n = len(selected_types)
+    # Sort pills in FLAT_TYPES order
+    ordered = [ft for ft in FLAT_TYPES if ft in selected_types]
+    pills_html = "".join(
+        f"<span style='display:inline-block;background:#e0e7ff;color:#3730a3;"
+        f"font-size:0.78rem;font-weight:600;border-radius:999px;"
+        f"padding:3px 12px;margin:3px 4px;'>"
+        f"{FLAT_ICONS[ft]} {FLAT_TYPE_LABELS[ft]}</span>"
+        for ft in ordered
+    )
+    count_label = f"{n} selected" if n > 1 else "1 selected"
+    st.markdown(
+        f"<div style='text-align:center;margin:0.8rem 0 0.4rem;'>"
+        f"<span style='font-size:0.75rem;color:#6b7280;margin-right:6px;'>{count_label}:</span>"
+        f"{pills_html}</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
     if _next_btn(key="ft_next"):
-        if not st.session_state.get("pref_flat_type"):
-            st.session_state.pref_flat_type = "4 ROOM"
+        if not st.session_state.get("pref_flat_types"):
+            st.session_state.pref_flat_types = ["4 ROOM"]
         st.session_state.onboarding_step = 3
         st.rerun()
     _back_btn("ft_back")
 
 
+
+# Minimum floor area by flat type (sqft) — used to auto-populate the slider
+_FLAT_TYPE_MIN_SQFT = {
+    "1 ROOM":          300,
+    "2 ROOM":          380,
+    "3 ROOM":          600,
+    "4 ROOM":          900,
+    "5 ROOM":         1100,
+    "EXECUTIVE":      1300,
+    "MULTI-GENERATION": 1100,
+}
+_SQFT_TO_SQM = 0.092903   # 1 sqft = 0.092903 sqm
+
+
+def _sqft_to_sqm(sqft: int) -> float:
+    return round(sqft * _SQFT_TO_SQM, 1)
+
+
 def _render_floor_area():
     _progress_bar(3)
     _step_label(3)
-    _heading("How much space do you need?", "Approximate floor area in square metres.")
+    _heading("What's your minimum floor area?")
 
-    area = st.slider(
-        "Floor area",
-        min_value=35,
-        max_value=160,
-        value=st.session_state.get("pref_floor_area") or 95,
-        step=5,
-        format="%d sqm",
-        label_visibility="collapsed",
+    # Determine auto-populated default from the *smallest* flat type chosen in step 2
+    selected_flat_types = st.session_state.get("pref_flat_types") or ["4 ROOM"]
+    # "smallest" = lowest minimum sqft
+    smallest_flat_type = min(
+        selected_flat_types,
+        key=lambda ft: _FLAT_TYPE_MIN_SQFT.get(ft, 900),
     )
-    st.markdown(
-        f"<div style='text-align:center;font-size:2.2rem;font-weight:800;"
-        f"letter-spacing:-0.04em;color:#0f172a;margin:0.4rem 0 1.6rem;'>"
-        f"{area} sqm</div>",
-        unsafe_allow_html=True,
+    auto_min_sqft = _FLAT_TYPE_MIN_SQFT.get(smallest_flat_type, 900)
+
+    # "No requirement" toggle — stored as pref_floor_area_skip
+    no_req = st.checkbox(
+        "No minimum requirement — show me all sizes",
+        value=st.session_state.get("pref_floor_area_skip", False),
+        key="floor_area_skip_toggle",
     )
+    st.session_state.pref_floor_area_skip = no_req
+
+    if no_req:
+        st.markdown(
+            "<div style='text-align:center;font-size:2rem;font-weight:800;color:#0b132d;"
+            "margin:1.2rem 0 1.6rem;'>All floor areas</div>",
+            unsafe_allow_html=True,
+        )
+        area_sqft = None
+    else:
+        # Show the auto-populate note only when the value hasn't been manually changed yet
+        manually_set = st.session_state.get("pref_floor_area_sqft_manual", False)
+        if not manually_set:
+            st.markdown(
+                f"<div style='font-size:0.78rem;color:#2563eb;background:#eff6ff;"
+                f"border:1px solid #bfdbfe;border-radius:8px;padding:6px 12px;"
+                f"margin-bottom:0.6rem;'>✨ Auto-populated based on your flat type "
+                f"(roughly {auto_min_sqft:,} sqft for a {smallest_flat_type}). "
+                f"Adjust freely.</div>",
+                unsafe_allow_html=True,
+            )
+
+        # Current slider value in sqft — default to auto_min_sqft
+        current_sqft = st.session_state.get("pref_floor_area_sqft") or auto_min_sqft
+
+        area_sqft = st.slider(
+            "Minimum floor area (sqft)",
+            min_value=200,
+            max_value=2500,
+            value=int(current_sqft),
+            step=50,
+            format="%d sqft",
+            label_visibility="collapsed",
+        )
+
+        # Mark as manually set once the user moves the slider away from the default
+        if area_sqft != auto_min_sqft:
+            st.session_state.pref_floor_area_sqft_manual = True
+
+        sqm_equiv = _sqft_to_sqm(area_sqft)
+        st.markdown(
+            f"<div style='text-align:center;font-size:2.2rem;font-weight:800;"
+            f"letter-spacing:-0.04em;color:#0f172a;margin:0.4rem 0 0.2rem;'>"
+            f"{area_sqft:,} sqft</div>"
+            f"<div style='text-align:center;font-size:0.85rem;color:#9ca3af;"
+            f"margin-bottom:1.6rem;'>≈ {sqm_equiv} sqm</div>",
+            unsafe_allow_html=True,
+        )
 
     if _next_btn(key="area_next"):
-        st.session_state.pref_floor_area = area
+        st.session_state.pref_floor_area_sqft = area_sqft
+        # Store in sqm for the backend (None = no filter)
+        st.session_state.pref_floor_area = (
+            _sqft_to_sqm(area_sqft) if area_sqft is not None else None
+        )
         st.session_state.onboarding_step = 4
         st.rerun()
     _back_btn("area_back")
@@ -807,10 +903,14 @@ def build_inputs_from_prefs() -> UserInputs:
         if key not in amenity_weights:
             amenity_weights[key] = 0.0
 
+    # floor_area_sqm: stored in sqm by _render_floor_area; None = no minimum filter
+    raw_sqm = st.session_state.get("pref_floor_area")
+    floor_area_sqm = float(raw_sqm) if raw_sqm is not None else None
+
     return UserInputs(
         budget=st.session_state.get("pref_budget") if not st.session_state.get("pref_budget_flexible") else None,
-        flat_type=st.session_state.get("pref_flat_type") or "4 ROOM",
-        floor_area_sqm=float(st.session_state.get("pref_floor_area") or 95),
+        flat_types=st.session_state.get("pref_flat_types") or ["4 ROOM"],
+        floor_area_sqm=floor_area_sqm,
         remaining_lease_years=st.session_state.get("pref_remaining_lease") or 60,
         town=st.session_state.get("pref_town"),
         school_scope=st.session_state.get("pref_school_scope", "Any"),
@@ -827,8 +927,15 @@ def get_preferences_display() -> dict:
 
     return {
         "Budget": budget_display,
-        "Flat type": FLAT_TYPE_LABELS.get(st.session_state.get("pref_flat_type") or "", "—"),
-        "Floor area": f"{st.session_state.get('pref_floor_area') or '—'} sqm",
+        "Flat type": ", ".join(
+            FLAT_TYPE_LABELS.get(ft, ft)
+            for ft in (st.session_state.get("pref_flat_types") or [])
+        ) or "—",
+        "Floor area": (
+            f"{st.session_state.get('pref_floor_area_sqft') or '—'} sqft"
+            if not st.session_state.get("pref_floor_area_skip")
+            else "No requirement"
+        ),
         "Min. lease": f"{st.session_state.get('pref_remaining_lease') or '—'} years remaining",
         "Town": st.session_state.get("pref_town") or "Recommendation mode",
         "Priority": {

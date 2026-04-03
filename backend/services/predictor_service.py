@@ -32,8 +32,9 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
     if town:
         listings_df = listings_df[listings_df["town"] == town]
 
-    if getattr(inputs, "flat_type", None):
-        listings_df = listings_df[listings_df["flat_type"] == inputs.flat_type]
+    flat_types = getattr(inputs, "flat_types", None)
+    if flat_types:
+        listings_df = listings_df[listings_df["flat_type"].isin(flat_types)]
 
     # Floor area: minimum only — show flats at or above the requested size.
     # No upper cap so larger flats are never excluded.
@@ -118,7 +119,7 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
         "filter_report": {
             "viable_listing_count": viable_count,
             "budget_filter":        budget,
-            "flat_type":            getattr(inputs, "flat_type", None),
+            "flat_types":           getattr(inputs, "flat_types", None),
             "floor_area_sqm":       getattr(inputs, "floor_area_sqm", None),
         },
     }

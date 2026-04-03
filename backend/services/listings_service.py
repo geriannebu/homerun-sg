@@ -12,8 +12,8 @@ def get_active_listings(inputs):
     if inputs.town:
         df = df[df["town"] == inputs.town.strip().upper()]
 
-    if inputs.flat_type:
-        df = df[df["flat_type"] == inputs.flat_type]
+    if getattr(inputs, "flat_types", None):
+        df = df[df["flat_type"].isin(inputs.flat_types)]
 
     if inputs.floor_area_sqm:
         df = df[
