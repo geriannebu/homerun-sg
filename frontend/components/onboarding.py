@@ -943,21 +943,21 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
   letter-spacing:0.08em;text-transform:uppercase;
   border-radius:999px;padding:4px 14px;
   margin-bottom:1.6rem;
-  opacity:0;animation:fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.4s forwards;
+  opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 0.3s forwards;
 }
 
 /* small intro line */
 .intro{
   font-size:0.95rem;font-weight:500;color:#6b7280;
   margin-bottom:0.3rem;
-  opacity:0;animation:fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 1.0s forwards;
+  opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 0.65s forwards;
 }
 
 /* big dark heading */
 .big{
   font-size:clamp(2.4rem,6.5vw,3.4rem);font-weight:800;letter-spacing:-0.05em;
   color:#0b132d;line-height:1.0;margin-bottom:0.1rem;
-  opacity:0;animation:fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 1.6s forwards;
+  opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 1.05s forwards;
 }
 
 /* big gradient line + shine after it appears */
@@ -968,15 +968,15 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
   background-size:260% auto;
   -webkit-background-clip:text;background-clip:text;color:transparent;
   opacity:0;
-  animation:fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 2.2s forwards,
-            shine 4s linear 3.4s infinite;
+  animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 1.45s forwards,
+            shine 4s linear 2.8s infinite;
 }
 
 /* sub */
 .sub{
   font-size:0.84rem;color:#9ca3af;max-width:270px;
   line-height:1.75;font-weight:400;
-  opacity:0;animation:fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 2.8s forwards;
+  opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 2.05s forwards;
 }
 </style>
 </head>
@@ -1021,7 +1021,7 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
         }
         div[data-testid="stButton"] button[kind="primary"] {
             opacity: 0;
-            animation: _btnFadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 3.6s forwards;
+            animation: _btnFadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 3.0s forwards;
         }
         </style>
         """,
