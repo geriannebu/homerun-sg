@@ -548,7 +548,6 @@ def _render_history():
 
     for s in reversed(sessions):
         n_liked  = len(s["liked_ids"])
-        n_super  = len(s["super_ids"])
         n_pass   = len(s["passed_ids"])
         n_unseen = len(s["unseen_ids"])
 
@@ -593,8 +592,6 @@ def _render_history():
                 <div style="display:flex;gap:14px;flex-wrap:wrap;">
                     <span style="font-size:0.78rem;color:#059E87;font-weight:600;">
                         ♥ {n_liked} saved</span>
-                    <span style="font-size:0.78rem;color:#d97706;font-weight:600;">
-                        ⭐ {n_super} super</span>
                     <span style="font-size:0.78rem;color:#9ca3af;font-weight:600;">
                         ✕ {n_pass} passed · ◌ {n_unseen} unseen</span>
                 </div>

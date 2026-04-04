@@ -266,26 +266,24 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
 
     session_df = liked_df
     session_label = session["label"] if session else "Current session"
-    super_count = int(session_df["is_super"].sum()) if "is_super" in session_df.columns else 0
 
     st.markdown(
         f"<div style='display:flex;align-items:center;gap:10px;margin:1rem 0 0.7rem;'>"
         f"<div style='font-size:0.82rem;font-weight:700;color:#0f172a;'>{session_label}</div>"
         f"<div style='font-size:0.72rem;color:#9ca3af;background:#f7f8fa;"
         f"border:1px solid #e4e7ed;border-radius:999px;padding:2px 8px;'>"
-        f"{len(session_df)} saved · {super_count} ⭐</div></div>",
+        f"{len(session_df)} saved</div></div>",
         unsafe_allow_html=True,
     )
 
     for idx, row in session_df.reset_index(drop=True).iterrows():
         lid = str(row["listing_id"])
         session_id = str(row.get("session_id", "na"))
-        is_super = bool(row.get("is_super", False))
         is_sel = lid in selected_ids
         tag = valuation_tag_html(row.get("valuation_label", ""))
         diff = float(row.get("asking_vs_predicted_pct", 0))
-        badge = "⭐ Super" if is_super else "♥ Saved"
-        badge_col = "#d97706" if is_super else "#059E87"
+        badge = "♥ Saved"
+        badge_col = "#059E87"
 
         border = "2px solid #059E87" if is_sel else "1px solid #e4e7ed"
         bg = "#f0fdf9" if is_sel else "rgba(255,255,255,0.96)"
@@ -324,7 +322,7 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
             unsafe_allow_html=True,
         )
 
-        btn_a, btn_b, btn_c, btn_d = st.columns([1.2, 0.9, 0.9, 0.9])
+        btn_a, btn_b, btn_c = st.columns([1.2, 0.9, 0.9])
         with btn_a:
             if st.button(
                 "View details →",
@@ -345,27 +343,11 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
                 st.rerun()
 
         with btn_c:
-            fav_label = "★ Favourited" if is_super else "⭐ Favourite"
-            if st.button(fav_label, key=f"fav_{lid}_{session_id}_{idx}", use_container_width=True):
-                for s in st.session_state.search_sessions:
-                    if s["session_id"] == session_id:
-                        if "super_ids" not in s:
-                            s["super_ids"] = []
-                        if lid in s["super_ids"]:
-                            s["super_ids"].remove(lid)
-                        else:
-                            s["super_ids"].append(lid)
-                        break
-                st.rerun()
-
-        with btn_d:
             if st.button("Remove", key=f"rm_{lid}_{session_id}_{idx}", use_container_width=True):
                 for s in st.session_state.search_sessions:
                     if s["session_id"] == session_id:
                         if lid in s["liked_ids"]:
                             s["liked_ids"].remove(lid)
-                        if lid in s.get("super_ids", []):
-                            s["super_ids"].remove(lid)
                         break
 
                 st.session_state.compare_selected_ids = [
