@@ -1053,6 +1053,16 @@ def build_inputs_from_prefs() -> UserInputs:
     raw_sqm = st.session_state.get("pref_floor_area")
     floor_area_sqm = float(raw_sqm) if raw_sqm is not None else None
 
+    priority_mode = st.session_state.get("pref_priority_mode", "balanced")
+
+    priority_to_ranking_profile = {
+        "save_money": "value-first",
+        "convenience": "amenity-first",
+        "balanced": "balanced",
+    }
+
+    ranking_profile = priority_to_ranking_profile.get(priority_mode, "balanced")
+
     return UserInputs(
         budget=st.session_state.get("pref_budget") if not st.session_state.get("pref_budget_flexible") else None,
         flat_types=st.session_state.get("pref_flat_types") or ["4 ROOM"],
@@ -1063,6 +1073,7 @@ def build_inputs_from_prefs() -> UserInputs:
         amenity_weights=amenity_weights,
         amenity_rank=rank,
         landmark_postals=[],
+        ranking_profile=ranking_profile,
     )
 
 

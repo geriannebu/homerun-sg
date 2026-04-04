@@ -77,6 +77,12 @@ def _why_match(row, inputs) -> str:
 
     return " • ".join(reasons) if reasons else "Good overall fit"
 
+def _sqm_to_sqft(area_sqm) -> int:
+    try:
+        return int(round(float(area_sqm) * 10.7639))
+    except Exception:
+        return 0
+
 
 def _serialize_card(row, inputs, budget=None) -> dict:
     diff = float(row.get("asking_vs_predicted_pct", row.get("valuation_pct", 0)))
@@ -116,7 +122,7 @@ def _serialize_card(row, inputs, budget=None) -> dict:
         "town": town,
         "address": str(row.get("address", row.get("full_address", ""))),
         "flat_type": str(row.get("flat_type", "")),
-        "area": float(row.get("floor_area_sqm", 0)),
+        "area_sqft": _sqm_to_sqft(row.get("floor_area_sqm", 0)),
         "storey": str(row.get("storey_range", row.get("storey_midpoint", ""))),
         "asking": int(row.get("asking_price", 0)),
         "predicted": int(row.get("predicted_price", 0)),
@@ -534,7 +540,7 @@ def _build_single_card_html(card_json: str) -> str:
                 </div>
 
                 <div class="meta">
-                    <div class="pill">📐 {json.loads(card_json)["area"]} sqm</div>
+                    <div class="pill">📐 {json.loads(card_json)["area_sqft"]} sqft</div>
                     <div class="pill">🏢 {json.loads(card_json)["storey"] or "-"}</div>
                     <div class="pill">💹 {json.loads(card_json)["diff_pct"]:+.1f}% vs model</div>
                 </div>
