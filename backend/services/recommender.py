@@ -71,6 +71,7 @@ RANKING_ALPHA = {
 
 # ── Data loading ───────────────────────────────────────────────────────────────
 
+
 def load_listings(path: Path = LISTINGS_PATH) -> pd.DataFrame:
     """
     Load the pre-processed listings CSV (output of preload_walking_times.py).
