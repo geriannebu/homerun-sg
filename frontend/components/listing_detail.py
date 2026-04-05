@@ -451,7 +451,7 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
                     <div style="flex:1;min-width:160px;">
                         <div style="font-size:0.76rem;color:#64748b;font-weight:700;">Storey</div>
                         <div style="font-size:1.05rem;font-weight:800;color:#0f172a;margin-top:4px;">
-                            {str(storey) if storey else "-"}
+                            {("Level " + str(storey)) if storey else "-"}
                         </div>
                     </div>
                     <div style="flex:1;min-width:160px;">

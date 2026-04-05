@@ -404,7 +404,7 @@ def _build_single_card_html(card_json: str) -> str:
         budget_gap_color = "#64748b"
 
     area_sqft = card.get("area_sqft", 0)
-    storey = card.get("storey") or "-"
+    storey = ("Level " + card.get("storey")) if card.get("storey") else "-"
     remaining_lease = card.get("remaining_lease") or "-"
     diff_pct = float(card.get("diff_pct", 0))
 
