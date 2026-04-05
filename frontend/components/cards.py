@@ -7,7 +7,6 @@ from backend.utils.constants import AMENITY_LABELS
 
 from frontend.components.listing_detail import show_listing_detail
 
-
 # ---------------------------------------------------------------------------
 # Value Cards (Predicted vs Budget)
 # ---------------------------------------------------------------------------
@@ -56,17 +55,21 @@ def render_homerun_pick(inputs: UserInputs, bundle: Dict[str,Any]):
     if bundle["listings_df"].empty:
         st.info("No listings available to pick from.")
         return
-
-    # Ensure amenity weights exist
+    
     amenity_weights = getattr(inputs, "amenity_weights", None) or {
-        "mrt":1, "bus":1, "schools":1, "hawker":1, "retail":1, "healthcare":1
+        "train": 1,
+        "bus": 1,
+        "primary_school": 1,
+        "hawker": 1,
+        "mall": 1,
+        "polyclinic": 1,
+        "supermarket": 1,
     }
 
-    if bundle["top"].empty:
-        st.info("No listings available to pick from.")
-        return
-
-    top = bundle["top"].iloc[0]  # Already scored and ranked in recommender.py
+    top_df = bundle["listings_df"]
+    if "final_score" in top_df.columns:
+        top_df = top_df.sort_values("final_score", ascending=False)
+    top = top_df.iloc[0]
 
     st.markdown("### 🏆 HomeRun Pick Right Now")
     st.write(f"**Listing ID:** {top['listing_id']}")
@@ -75,8 +78,8 @@ def render_homerun_pick(inputs: UserInputs, bundle: Dict[str,Any]):
     st.write(f"**Floor Area:** {top.get('floor_area_sqm', 0)} sqm")
     st.write(f"**Asking Price:** {fmt_sgd(top['asking_price'])}")
     st.write(f"**Predicted Price:** {fmt_sgd(top['predicted_price'])}")
-    st.write(f"**Valuation:** {top['valuation_label']}")
-    st.write(f"**Overall Score:** {top['overall_value_score']:.1f}/100")
+    st.write(f"**Valuation:** {top['valuation_pct']}")
+    st.write(f"**Overall Score:** {float(top.get('final_score', 0)) * 100:.1f}/100")
 
     # Button to open listing detail dialog
     payload = top.to_dict()
@@ -101,6 +104,6 @@ def render_homerun_pick(inputs: UserInputs, bundle: Dict[str,Any]):
             else:
                 closeness = "Far"
 
-            st.write(f"• {AMENITY_LABELS[amen]}: {closeness} ({distance:.0f} min walk, score: {score:.2f})")
+            st.write(f"• {AMENITY_LABELS[amen]}: {closeness} ({float(distance):.0f} min walk, score: {float(score)*100:.0f}/100)")
 
         

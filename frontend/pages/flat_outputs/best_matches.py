@@ -10,25 +10,26 @@ from backend.utils.constants import TOWN_COORDS
 from frontend.state.session import get_active_session, record_swipe
 from frontend.components.listing_detail import show_listing_detail
 
-
-AMENITY_LABELS = {
-    "mrt": "MRT access",
-    "bus": "Bus stops",
-    "healthcare": "Healthcare",
-    "schools": "Schools",
-    "hawker": "Hawker food",
-    "retail": "Shopping",
-}
-
 DEFAULT_COORD = (1.3521, 103.8198)
 
+AMENITY_LABELS = {
+    "train": "MRT access",
+    "bus": "Bus stops",
+    "primary_school": "Schools",
+    "hawker": "Hawker food",
+    "mall": "Shopping malls",
+    "polyclinic": "Healthcare",
+    "supermarket": "Supermarkets",
+}
+
 AMENITY_ICONS = {
-    "mrt": "🚇",
+    "train": "🚇",
     "bus": "🚌",
-    "healthcare": "🏥",
-    "schools": "🏫",
+    "primary_school": "🏫",
     "hawker": "🍜",
-    "retail": "🛍️",
+    "mall": "🛍️",
+    "polyclinic": "🏥",
+    "supermarket": "🛒",
 }
 
 
@@ -56,22 +57,23 @@ def _why_match(row, inputs) -> str:
     top_amenities = rank[:2] if rank else []
     reasons = []
 
-    diff = float(row.get("asking_vs_predicted_pct", 0))
+    diff = float(row.get("valuation_pct", 0))
     if diff <= -5:
         reasons.append("priced below model estimate")
     elif diff <= 3:
         reasons.append("fairly priced")
 
     for amen in top_amenities:
-        score = float(row.get(f"{amen}_score", 0))
-        if score >= 50:
+        score = float(row.get(f"walk_acc_{amen}", 0))
+        if score >= 0.6:
             label = {
-                "mrt": "strong MRT access",
+                "train": "strong MRT access",
                 "bus": "good bus connectivity",
-                "healthcare": "healthcare nearby",
-                "schools": "schools nearby",
+                "primary_school": "schools nearby",
                 "hawker": "hawker food nearby",
-                "retail": "shopping nearby",
+                "mall": "shopping nearby",
+                "polyclinic": "healthcare nearby",
+                "supermarket": "supermarkets nearby",
             }.get(amen, amen)
             reasons.append(label)
 
@@ -85,8 +87,16 @@ def _sqm_to_sqft(area_sqm) -> int:
 
 
 def _serialize_card(row, inputs, budget=None) -> dict:
-    diff = float(row.get("asking_vs_predicted_pct", row.get("valuation_pct", 0)))
-    label = str(row.get("valuation_label", "Fair Value"))
+    diff = float(row.get("valuation_pct", 0))
+    if diff <= -5:
+        label = "Great Deal"
+    elif diff <= 3:
+        label = "Fair Value"
+    elif diff <= 10:
+        label = "Slightly High"
+    else:
+        label = "Overpriced"    
+        
     town = str(row.get("town", ""))
 
     budget_val = budget if budget is not None else getattr(inputs, "budget", None)
@@ -133,7 +143,7 @@ def _serialize_card(row, inputs, budget=None) -> dict:
         "label_color": _val_color(label),
         "map_url": _map_url(town),
         "why": _why_match(row, inputs),
-        "final_score": float(row.get("final_score", 0)),
+        "final_score": float(row.get("final_score", 0)) * 100,
         "budget": budget_val,
         "budget_gap": budget_gap,
         "budget_gap_pct": budget_gap_pct,
@@ -141,7 +151,7 @@ def _serialize_card(row, inputs, budget=None) -> dict:
     }
 
     for amen in AMENITY_ICONS:
-        card[amen] = float(row.get(f"{amen}_score", 0))
+        card[amen] = float(row.get(f"walk_acc_{amen}", 0)) * 100
 
     return card
 

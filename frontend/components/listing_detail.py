@@ -49,23 +49,6 @@ def _format_distance(dist):
         return "N/A"
 
 
-def _walking_time_minutes(dist, metres_per_minute: float = 80.0):
-    if dist is None:
-        return None
-    try:
-        dist = float(dist)
-        if math.isnan(dist):
-            return None
-        return max(1, round(dist / metres_per_minute))
-    except Exception:
-        return None
-
-
-def _format_walking_time(dist):
-    mins = _walking_time_minutes(dist)
-    return f"{mins} min" if mins is not None else "N/A"
-
-
 def _val_style(diff):
     if diff <= -5:
         return "Great Deal", "#059E87"
@@ -176,6 +159,17 @@ def _safe_numeric(value):
         return float(value)
     except Exception:
         return np.nan
+    
+def _format_walk_minutes(mins):
+    if mins is None:
+        return "N/A"
+    try:
+        mins = float(mins)
+        if math.isnan(mins):
+            return "N/A"
+        return f"{mins:.0f} min"
+    except Exception:
+        return "N/A"
 
 
 def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool = True):
@@ -239,16 +233,32 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
         lon = row.get("lon")
         remaining = row.get("remaining_lease", row.get("remaining_lease_years"))
 
-        mrt_dist = row.get("train_1_dist_m")
+        train_dist = row.get("train_1_dist_m")
         bus_dist = row.get("bus_1_dist_m")
         school_dist = row.get("school_1_dist_m")
         hawker_dist = row.get("hawker_1_dist_m")
-        retail_dist = row.get("mall_1_dist_m")
+        mall_dist = row.get("mall_1_dist_m")
         health_dist = row.get("polyclinic_1_dist_m")
+        supermarket_dist = row.get("supermarket_1_dist_m")
+
+        train_walk = row.get("walk_train_min1")
+        bus_walk = row.get("walk_bus_min1")
+        school_walk = row.get("walk_primary_school_min1")
+        hawker_walk = row.get("walk_hawker_min1")
+        mall_walk = row.get("walk_mall_min1")
+        health_walk = row.get("walk_polyclinic_min1")
+        supermarket_walk = row.get("walk_supermarket_min1")
 
         amenity_score = _safe_numeric(row.get("amenity_score"))
         value_score = _safe_numeric(row.get("value_score"))
         final_score = _safe_numeric(row.get("final_score"))
+
+        if pd.notna(amenity_score):
+            amenity_score *= 100
+        if pd.notna(value_score):
+            value_score *= 100
+        if pd.notna(final_score):
+            final_score *= 100
 
         has_score_breakdown = (
             pd.notna(amenity_score)
@@ -445,34 +455,29 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
             unsafe_allow_html=True,
         )
 
-        mrt_score = _safe_numeric(row.get("mrt_score"))
-        bus_score = _safe_numeric(row.get("bus_score"))
+        def _pct(x):
+            return x * 100 if pd.notna(x) else x
 
-        school_score = _safe_numeric(row.get("schools_score"))
-        if pd.isna(school_score):
-            school_score = _safe_numeric(row.get("school_score"))
-
-        hawker_score = _safe_numeric(row.get("hawker_score"))
-
-        retail_score = _safe_numeric(row.get("retail_score"))
-        if pd.isna(retail_score):
-            retail_score = _safe_numeric(row.get("mall_score"))
-
-        health_score = _safe_numeric(row.get("healthcare_score"))
-        if pd.isna(health_score):
-            health_score = _safe_numeric(row.get("health_score"))
+        train_score = _pct(_safe_numeric(row.get("walk_acc_train")))
+        bus_score = _pct(_safe_numeric(row.get("walk_acc_bus")))
+        school_score = _pct(_safe_numeric(row.get("walk_acc_primary_school")))
+        hawker_score = _pct(_safe_numeric(row.get("walk_acc_hawker")))
+        mall_score = _pct(_safe_numeric(row.get("walk_acc_mall")))
+        health_score = _pct(_safe_numeric(row.get("walk_acc_polyclinic")))
+        supermarket_score = _pct(_safe_numeric(row.get("walk_acc_supermarket")))
 
         amenities = [
-            ("🚇 MRT", mrt_dist, mrt_score),
-            ("🚌 Bus", bus_dist, bus_score),
-            ("🏫 Schools", school_dist, school_score),
-            ("🍜 Hawker", hawker_dist, hawker_score),
-            ("🛍️ Retail", retail_dist, retail_score),
-            ("🏥 Healthcare", health_dist, health_score),
+            ("🚇 MRT", train_dist, train_walk, train_score),
+            ("🚌 Bus", bus_dist, bus_walk, bus_score),
+            ("🏫 Schools", school_dist, school_walk, school_score),
+            ("🍜 Hawker", hawker_dist, hawker_walk, hawker_score),
+            ("🛍️ Mall", mall_dist, mall_walk, mall_score),
+            ("🏥 Healthcare", health_dist, health_walk, health_score),
+            ("🛒 Supermarket", supermarket_dist, supermarket_walk, supermarket_score),
         ]
 
-        has_amenity_scores = any(pd.notna(score) for _, _, score in amenities)
-
+        has_amenity_scores = any(pd.notna(score) for _, _, _, score in amenities)
+        
         if has_amenity_scores:
             header_html = """
 <div style="
@@ -488,10 +493,30 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
     letter-spacing:0.06em;
     font-family: Inter, system-ui, -apple-system, sans-serif;">
     <div>Amenity</div>
+    <div>
     <div>Proximity</div>
+    <div style="font-size:0.62rem;font-weight:600;text-transform:none;letter-spacing:0;color:#cbd5e1;">
+        to nearest amenity
+    </div>
+</div>
+<div>
     <div>Distance</div>
-    <div>Walk</div>
-    <div>Score</div>
+    <div style="font-size:0.62rem;font-weight:600;text-transform:none;letter-spacing:0;color:#cbd5e1;">
+        to nearest amenity
+    </div>
+</div>
+<div>
+    <div>Route walk time</div>
+    <div style="font-size:0.62rem;font-weight:600;text-transform:none;letter-spacing:0;color:#cbd5e1;">
+        to nearest amenity
+    </div>
+</div>
+    <div>
+    <div>Overall access score</div>
+    <div style="font-size:0.62rem;font-weight:600;text-transform:none;letter-spacing:0;color:#cbd5e1;">
+        based on nearby options
+    </div>
+</div>
 </div>
 """
         else:
@@ -511,12 +536,12 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
     <div>Amenity</div>
     <div>Proximity</div>
     <div>Distance</div>
-    <div>Walk</div>
+    <div>Actual Walk Time</div>
 </div>
 """
 
         rows_html = ""
-        for i, (label, dist, score) in enumerate(amenities):
+        for i, (label, dist, walk, score) in enumerate(amenities):
             row_bg = "#ffffff" if i % 2 == 0 else "#fcfcfd"
 
             if has_amenity_scores:
@@ -542,7 +567,7 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
     <div style="font-weight:700;color:#0f172a;">{label}</div>
     <div>{_proximity_badge_html(dist)}</div>
     <div style="font-weight:600;color:#334155;">{_format_distance(dist)}</div>
-    <div style="font-weight:600;color:#334155;">{_format_walking_time(dist)}</div>
+    <div style="font-weight:600;color:#334155;">{_format_walk_minutes(walk)}</div>
     {last_col}
 </div>
 """

@@ -51,16 +51,23 @@ import numpy as np
 import pandas as pd
 from backend.utils.constants import AMENITY_MAPPING
 
+
 log = logging.getLogger(__name__)
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-DATA_DIR      = Path("data")
-LISTINGS_PATH = DATA_DIR / "listings_with_walking_times.csv"
+DATA_DIR      = Path("backend_predictor_listings/price_predictor/csv_outputs")
+LISTINGS_PATH = DATA_DIR / "listings_with_walking_times_full.csv"
 
 TAU_WALKING = 8.0    # minutes — exp(-t/TAU); score ≈ 0.37 at 8 min walk
 VALUE_CLIP  = 0.10   # clip value_delta_pct to ±10% before normalising
 TOP_N       = 10     # listings returned for Tinder swipe
 
+
+RANKING_ALPHA = {
+    "amenity-first": 0.75,
+    "balanced": 0.50,
+    "value-first": 0.25,
+}
 
 # ── Data loading ───────────────────────────────────────────────────────────────
 
@@ -104,38 +111,28 @@ def _amenity_score(
     scoring_weights: dict[str, float],
     tau: float = TAU_WALKING,
 ) -> tuple[float, dict[str, float]]:
-    """
-    Compute the weighted amenity score for one listing.
-
-    Reads:
-        walk_{amenity}_min1, _min2, _min3  (individual preloaded walking times)
-    Falls back to:
-        walk_{amenity}_avg_mins            (if individual columns are absent)
-
-    Returns
-    -------
-    (amenity_score, per_amenity_acc)
-        amenity_score    : float 0..1
-        per_amenity_acc  : {amenity: exp_decay_score}  — for display
-    """
     per_acc = {}
 
     for amenity in amenity_ranking:
-        col_key = AMENITY_MAPPING.get(amenity, amenity)
+        col_key = AMENITY_MAPPING.get(amenity)
+        if col_key is None:
+            per_acc[amenity] = 0.0
+            continue
 
         times = [
-            listing.get(f"walk_{col_key}_min{n}")
-            for n in range(1, 4)
+            listing.get(f"walk_{col_key}_min1"),
+            listing.get(f"walk_{col_key}_min2"),
+            listing.get(f"walk_{col_key}_min3"),
         ]
 
         times = [
             t for t in times
-            if t is not None and not (isinstance(t, float) and math.isnan(t))
+            if pd.notna(t)
         ]
 
         if not times:
             avg = listing.get(f"walk_{col_key}_avg_mins")
-            if avg is not None and not (isinstance(avg, float) and math.isnan(avg)):
+            if pd.notna(avg):
                 times = [avg]
 
         per_acc[amenity] = _avg_exp_decay(times, tau)
@@ -190,9 +187,11 @@ def stage1_filter(
     df = listings_df.copy()
     df = df[df["asking_price"] <= budget]
     if min_sqft > 0:
-        df = df[df["floor_area_sqft"] >= min_sqft]
+        min_sqm = min_sqft / 10.7639
+        df = df[df["floor_area_sqm"] >= min_sqm]
     if rooms:
-        df = df[df["bedrooms"].isin(rooms)]
+        allowed_flat_types = [f"{r} ROOM" for r in rooms]
+        df = df[df["flat_type"].isin(allowed_flat_types)]
     if preferred_towns:
         towns_upper = [t.upper().strip() for t in preferred_towns]
         df = df[df["town"].str.upper().isin(towns_upper)]
@@ -235,27 +234,43 @@ def stage3_score(
     records = []
     for _, listing in filtered_df.iterrows():
         a_score, per_acc = _amenity_score(listing, amenity_ranking, scoring_weights)
-        v_score          = _value_score(listing.get("value_delta_pct", 0))
+        v_score          = _value_score(-listing.get("valuation_pct", 0))
         f_score          = round(alpha * a_score + (1 - alpha) * v_score, 4)
 
         record = {
+            "listing_id":      listing.get("listing_id"),
             "address":         listing.get("full_address", ""),
             "town":            listing.get("town", ""),
-            "bedrooms":        listing.get("bedrooms", ""),
-            "floor_area_sqft": listing.get("floor_area_sqft", ""),
+            "flat_type":        listing.get("flat_type", ""),
+            "floor_area_sqm": listing.get("floor_area_sqm", ""),
             "asking_price":    listing.get("asking_price", 0),
             "predicted_price": listing.get("predicted_price", None),
-            "value_delta_pct": listing.get("value_delta_pct", 0),
-            "latitude":        listing.get("latitude"),
-            "longitude":       listing.get("longitude"),
+            "valuation_pct": listing.get("valuation_pct", 0),
+            "lat":        listing.get("lat"),
+            "lon":       listing.get("lon"),
             "amenity_score":   a_score,
             "value_score":     v_score,
             "final_score":     f_score,
+            "train_1_dist_m": listing.get("train_1_dist_m"),
+            "bus_1_dist_m": listing.get("bus_1_dist_m"),
+            "school_1_dist_m": listing.get("school_1_dist_m"),
+            "hawker_1_dist_m": listing.get("hawker_1_dist_m"),
+            "mall_1_dist_m": listing.get("mall_1_dist_m"),
+            "polyclinic_1_dist_m": listing.get("polyclinic_1_dist_m"),
+            "supermarket_1_dist_m": listing.get("supermarket_1_dist_m"),
+
+            "walk_train_min1": listing.get("walk_train_min1"),
+            "walk_bus_min1": listing.get("walk_bus_min1"),
+            "walk_primary_school_min1": listing.get("walk_primary_school_min1"),
+            "walk_hawker_min1": listing.get("walk_hawker_min1"),
+            "walk_mall_min1": listing.get("walk_mall_min1"),
+            "walk_polyclinic_min1": listing.get("walk_polyclinic_min1"),
+            "walk_supermarket_min1": listing.get("walk_supermarket_min1"),
         }
         for a in amenity_ranking:
-            record[f"walk_acc_{a}"]      = per_acc.get(a, 0.0)
-            record[f"walk_{a}_avg_mins"] = listing.get(f"walk_{a}_avg_mins")
-
+            col_key = AMENITY_MAPPING.get(a)
+            record[f"walk_acc_{a}"] = per_acc.get(a, 0.0)
+            record[f"walk_{a}_avg_mins"] = listing.get(f"walk_{col_key}_avg_mins") if col_key else None
         records.append(record)
 
     if not records:

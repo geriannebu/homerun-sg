@@ -29,23 +29,23 @@ except Exception:
 TOTAL_STEPS = 9
 
 AMENITY_ICONS = {
-    "mrt": "🚇",
+    "train": "🚇",
     "bus": "🚌",
-    "healthcare": "🏥",
-    "schools": "🏫",
+    "polyclinic": "🏥",
+    "primary_school": "🏫",
     "hawker": "🍜",
-    "retail": "🛍️",
+    "mall": "🛍️",
     "supermarket": "🛒",
 }
 
 FRONTEND_AMENITY_LABELS = {
-    "mrt": "MRT stations",
+    "train": "MRT stations",
     "bus": "Bus stops",
     "hawker": "Hawker centres",
-    "retail": "Shopping malls",
+    "mall": "Shopping malls",
     "supermarket": "Supermarkets",
-    "healthcare": "Hospitals / Polyclinics",
-    "schools": "Schools",
+    "polyclinic": "Hospitals / Polyclinics",
+    "primary_school": "Schools",
 }
 
 FLAT_TYPE_LABELS = {
@@ -73,13 +73,13 @@ ACCENT_BG = "rgba(255,68,88,0.08)"
 ACCENT_BORDER = "#FF4458"
 
 AMENITY_KEY_MAP = {
-    "train": "mrt",
+    "train": "train",
     "bus": "bus",
     "hawker": "hawker",
-    "mall": "retail",
+    "mall": "mall",
     "supermarket": "supermarket",
-    "polyclinic": "healthcare",
-    "primary_school": "schools",
+    "polyclinic": "polyclinic",
+    "primary_school": "primary_school",
 }
 
 
