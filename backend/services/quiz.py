@@ -10,7 +10,7 @@ QUESTION_BANK = [
         "options": [
             {"id": "q1_a", "label": "A fast MRT connection", "amenity": "train"},
             {"id": "q1_b", "label": "A bus stop very close to home", "amenity": "bus"},
-            {"id": "q1_c", "label": "I don’t mind either, as long as essentials are nearby", "amenity": "mall"},
+            {"id": "q1_c", "label": "No strong preference", "amenity": None},
         ],
     },
     {
@@ -24,38 +24,29 @@ QUESTION_BANK = [
     },
     {
         "id": "q3",
-        "text": "On a busy weekday, which nearby option would help you the most?",
+        "text": "Which of these matters more for your household right now?",
         "options": [
-            {"id": "q3_a", "label": "MRT access", "amenity": "train"},
-            {"id": "q3_b", "label": "A one-stop place for errands and essentials", "amenity": "mall"},
-            {"id": "q3_c", "label": "A nearby clinic or polyclinic", "amenity": "polyclinic"},
+            {"id": "q3_a", "label": "A nearby clinic or polyclinic", "amenity": "polyclinic"},
+            {"id": "q3_b", "label": "Good school access", "amenity": "primary_school"},
+            {"id": "q3_c", "label": "A one-stop place for errands and essentials", "amenity": "mall"},
         ],
     },
     {
         "id": "q4",
-        "text": "Which of these matters more for your household right now?",
+        "text": "What sounds most like your usual weekend?",
         "options": [
-            {"id": "q4_a", "label": "Good school access", "amenity": "primary_school"},
-            {"id": "q4_b", "label": "Healthcare nearby", "amenity": "polyclinic"},
-            {"id": "q4_c", "label": "Good public transport connectivity", "amenity": "train"},
+            {"id": "q4_a", "label": "Eating around the neighbourhood and staying close to home", "amenity": "hawker"},
+            {"id": "q4_b", "label": "Shopping, errands, cafés, or mall time", "amenity": "mall"},
+            {"id": "q4_c", "label": "Stocking up on groceries for the week", "amenity": "supermarket"},
         ],
     },
     {
         "id": "q5",
-        "text": "What sounds most like your usual weekend?",
-        "options": [
-            {"id": "q5_a", "label": "Eating around the neighbourhood and staying close to home", "amenity": "hawker"},
-            {"id": "q5_b", "label": "Shopping, errands, cafés, or mall time", "amenity": "mall"},
-            {"id": "q5_c", "label": "Family-oriented routines where nearby schools and amenities matter", "amenity": "primary_school"},
-        ],
-    },
-    {
-        "id": "q6",
         "text": "If you had to prioritise one, which would you choose?",
         "options": [
-            {"id": "q6_a", "label": "Being near MRT over having more food options", "amenity": "train"},
-            {"id": "q6_b", "label": "Having food options nearby over faster transport", "amenity": "hawker"},
-            {"id": "q6_c", "label": "Having everyday essentials in one place", "amenity": "mall"},
+            {"id": "q5_a", "label": "Being near MRT over having more food options", "amenity": "train"},
+            {"id": "q5_b", "label": "Having food options nearby over faster transport", "amenity": "hawker"},
+            {"id": "q5_c", "label": "Having everyday essentials in one place", "amenity": "mall"},
         ],
     },
 ]
@@ -78,13 +69,20 @@ QUIZ_SCORE_BASE = 0.25
 def _build_active_questions(selected: list[str]) -> list[dict]:
     sel, active = set(selected), []
     for q in QUESTION_BANK:
-        valid = [o for o in q["options"] if o["amenity"] in sel]
-        if len(valid) >= 2:
+        valid = [o for o in q["options"] if (o["amenity"] in sel) or (o["amenity"] is None)]
+        scored_valid = [o for o in valid if o["amenity"] is not None]
+
+        if len(scored_valid) >= 2:
+            has_none_option = any(o["amenity"] is None for o in valid)
+
+            options = valid if has_none_option else valid + [{"label": NO_PREF_LABEL, "amenity": None}]
+
             active.append({
                 **q,
-                "options": valid + [{"label": NO_PREF_LABEL, "amenity": None}],
+                "options": options,
             })
-    return active[:4]
+
+    return active[:5]
 
 
 def _compute_normalised_weights(
