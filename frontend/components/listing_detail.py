@@ -9,7 +9,6 @@ from backend.utils.formatters import fmt_sgd
 from frontend.state.session import record_swipe
 
 
-# ── Map helper ──────────────────────────────────────────────────────────────
 def _map_iframe(lat, lon, height: int = 220) -> str:
     if lat is None or lon is None:
         return ""
@@ -179,7 +178,6 @@ def _safe_numeric(value):
         return np.nan
 
 
-# ── Main dialog ──────────────────────────────────────────────────────────────
 def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool = True):
     import json
 
@@ -253,9 +251,9 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
         final_score = _safe_numeric(row.get("final_score"))
 
         has_score_breakdown = (
-            pd.notna(amenity_score) or
-            pd.notna(value_score) or
-            pd.notna(final_score)
+            pd.notna(amenity_score)
+            or pd.notna(value_score)
+            or pd.notna(final_score)
         )
 
         amenity_color = _score_color(amenity_score) if pd.notna(amenity_score) else "#94a3b8"
@@ -449,6 +447,7 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
 
         mrt_score = _safe_numeric(row.get("mrt_score"))
         bus_score = _safe_numeric(row.get("bus_score"))
+
         school_score = _safe_numeric(row.get("schools_score"))
         if pd.isna(school_score):
             school_score = _safe_numeric(row.get("school_score"))
@@ -474,48 +473,105 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
 
         has_amenity_scores = any(pd.notna(score) for _, _, score in amenities)
 
+        if has_amenity_scores:
+            header_html = """
+<div style="
+    display:grid;
+    grid-template-columns:1.2fr 1fr 0.9fr 0.9fr 0.9fr;
+    gap:10px;
+    align-items:center;
+    padding:0 0 10px 0;
+    color:#94a3b8;
+    font-size:0.72rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-family: Inter, system-ui, -apple-system, sans-serif;">
+    <div>Amenity</div>
+    <div>Proximity</div>
+    <div>Distance</div>
+    <div>Walk</div>
+    <div>Score</div>
+</div>
+"""
+        else:
+            header_html = """
+<div style="
+    display:grid;
+    grid-template-columns:1.4fr 1fr 1fr 1fr;
+    gap:10px;
+    align-items:center;
+    padding:0 0 10px 0;
+    color:#94a3b8;
+    font-size:0.72rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-family: Inter, system-ui, -apple-system, sans-serif;">
+    <div>Amenity</div>
+    <div>Proximity</div>
+    <div>Distance</div>
+    <div>Walk</div>
+</div>
+"""
+
         rows_html = ""
-        for label, dist, score in amenities:
+        for i, (label, dist, score) in enumerate(amenities):
+            row_bg = "#ffffff" if i % 2 == 0 else "#fcfcfd"
+
             if has_amenity_scores:
-                score_html = _score_badge_html(score) if pd.notna(score) else ""
                 grid_cols = "1.2fr 1fr 0.9fr 0.9fr 0.9fr"
-                last_col = f"<div>{score_html}</div>"
+                score_html = _score_badge_html(score) if pd.notna(score) else ""
+                last_col = f"<div style='display:flex;justify-content:flex-start;'>{score_html}</div>"
             else:
                 grid_cols = "1.4fr 1fr 1fr 1fr"
                 last_col = ""
 
             rows_html += f"""
-        <div style="
-            display:grid;
-            grid-template-columns:{grid_cols};
-            gap:10px;
-            align-items:center;
-            padding:12px 0;
-            border-top:1px solid #f1f5f9;">
-            <div style="font-weight:700;color:#0f172a;">{label}</div>
-            <div>{_proximity_badge_html(dist)}</div>
-            <div style="font-weight:600;color:#334155;">{_format_distance(dist)}</div>
-            <div style="font-weight:600;color:#334155;">{_format_walking_time(dist)}</div>
-            {last_col}
-        </div>
-        """
+<div style="
+    display:grid;
+    grid-template-columns:{grid_cols};
+    gap:10px;
+    align-items:center;
+    padding:12px 14px;
+    margin-bottom:8px;
+    border:1px solid #f1f5f9;
+    border-radius:14px;
+    background:{row_bg};
+    font-family: Inter, system-ui, -apple-system, sans-serif;">
+    <div style="font-weight:700;color:#0f172a;">{label}</div>
+    <div>{_proximity_badge_html(dist)}</div>
+    <div style="font-weight:600;color:#334155;">{_format_distance(dist)}</div>
+    <div style="font-weight:600;color:#334155;">{_format_walking_time(dist)}</div>
+    {last_col}
+</div>
+"""
 
         st.markdown(
             f"""
-        <div style="
-            border:1px solid #e2e8f0;
-            border-radius:20px;
-            padding:18px 18px 10px 18px;
-            background:#ffffff;
-            box-shadow:0 10px 24px rgba(15,23,42,0.05);
-            margin-bottom:14px;">
-            <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;
-                        letter-spacing:0.08em;color:#94a3b8;margin-bottom:10px;">
-                Nearby amenities
-            </div>
-            {rows_html}
-        </div>
-        """,
+<div style="
+    border:1px solid #e2e8f0;
+    border-radius:20px;
+    padding:18px 18px 12px 18px;
+    background:#ffffff;
+    box-shadow:0 10px 24px rgba(15,23,42,0.05);
+    margin-bottom:14px;
+    font-family: Inter, system-ui, -apple-system, sans-serif;">
+    <div style="
+        font-size:0.72rem;
+        font-weight:800;
+        text-transform:uppercase;
+        letter-spacing:0.08em;
+        color:#94a3b8;
+        margin-bottom:10px;">
+        Nearby amenities
+    </div>
+
+    {header_html}
+
+    {rows_html}
+</div>
+""",
             unsafe_allow_html=True,
         )
 

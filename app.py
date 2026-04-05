@@ -540,8 +540,9 @@ def _render_sidebar():
     st.sidebar.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
 
     nav_display = [f"{_PAGE_ICONS[p]}  {p}" for p in PAGES]
-    displayed   = st.sidebar.radio(
-        "Nav", nav_display,
+    displayed = st.sidebar.radio(
+        "Nav",
+        nav_display,
         index=PAGES.index(st.session_state.active_page),
         label_visibility="collapsed",
     )
@@ -553,14 +554,14 @@ def _render_sidebar():
     # ── Current deck card ─────────────────────────────────────────────────────
     session = get_active_session()
     if session:
-        n_liked  = len(session["liked_ids"])
+        n_liked = len(session["liked_ids"])
         n_passed = len(session["passed_ids"])
         n_unseen = len(session["unseen_ids"])
-        total    = n_liked + n_passed + n_unseen
-        seen     = n_liked + n_passed
-        pct      = int(seen / total * 100) if total else 0
-        circ     = 213.6
-        arc      = round(pct / 100 * circ, 1)
+        total = n_liked + n_passed + n_unseen
+        seen = n_liked + n_passed
+        pct = int(seen / total * 100) if total else 0
+        circ = 213.6
+        arc = round(pct / 100 * circ, 1)
 
         st.sidebar.markdown(
             f"""
@@ -603,16 +604,24 @@ def _render_sidebar():
         )
 
         st.sidebar.markdown('<div class="hr-new-search">', unsafe_allow_html=True)
-        if st.sidebar.button("🔍  New search", use_container_width=True):
-            st.session_state.onboarding_step     = 1
+        if st.sidebar.button("🔍  New search", key="sidebar_new_search_btn", use_container_width=True):
+            from backend.services.quiz import reset_quiz
+
+            reset_quiz(prefill_from_existing=True)
+
+            st.session_state.onboarding_step = 1
             st.session_state.onboarding_complete = False
-            st.session_state.done_confirmed      = False
-            st.session_state.active_page         = "Discover"
+            st.session_state.done_confirmed = False
+            st.session_state.active_page = "Discover"
+
+            st.session_state.compare_selected_ids = []
+            st.session_state.custom_compare_rows = []
+
             st.rerun()
         st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
     # ── Logged-in-as / guest footer ───────────────────────────────────────────
-    user     = st.session_state.get("current_user", "")
+    user = st.session_state.get("current_user", "")
     is_guest = user == "__guest__"
     if is_guest:
         st.sidebar.markdown(
@@ -632,7 +641,7 @@ def _render_sidebar():
             unsafe_allow_html=True,
         )
     else:
-        uname   = user.split("@")[0] if "@" in user else user
+        uname = user.split("@")[0] if "@" in user else user
         initial = uname[0].upper() if uname else "?"
         st.sidebar.markdown(
             f"""

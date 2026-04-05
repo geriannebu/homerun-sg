@@ -208,7 +208,7 @@ def render_listing_tab(listings_df: pd.DataFrame):
 
     # Render ONLY the current card so visuals and details stay synced
     html = _build_single_card_html(json.dumps(current_card))
-    components.html(html, height=620, scrolling=False)
+    components.html(html, height=445, scrolling=False)
 
     score = current_card["final_score"]
     color = "#059E87" if score >= 75 else "#d97706" if score >= 50 else "#FF4458"
@@ -319,6 +319,26 @@ def _render_deck_done(session: dict, listings_df: pd.DataFrame):
 
 
 def _build_single_card_html(card_json: str) -> str:
+    card = json.loads(card_json)
+
+    budget = card.get("budget")
+    if budget is not None:
+        budget_text = f"${budget:,}"
+    else:
+        budget_text = "Not set"
+
+    budget_gap = card.get("budget_gap")
+    if budget_gap is not None:
+        budget_gap_text = f"{budget_gap:+,}"
+        budget_gap_color = "#059E87" if budget_gap >= 0 else "#dc2626"
+    else:
+        budget_gap_text = "N/A"
+        budget_gap_color = "#64748b"
+
+    area_sqft = card.get("area_sqft", 0)
+    storey = card.get("storey") or "-"
+    diff_pct = float(card.get("diff_pct", 0))
+
     return f"""
     <html>
     <head>
@@ -331,9 +351,10 @@ def _build_single_card_html(card_json: str) -> str:
         }}
 
         .wrap {{
-            max-width: 390px;
+            max-width: 920px;
             margin: 0 auto;
             padding: 0;
+            background: transparent;
         }}
 
         .card {{
@@ -378,8 +399,15 @@ def _build_single_card_html(card_json: str) -> str:
             white-space: nowrap;
         }}
 
-        .pricebox {{
+        .card-grid {{
+            display: grid;
+            grid-template-columns: 1.35fr 0.95fr;
+            gap: 16px;
+            align-items: start;
             margin-top: 14px;
+        }}
+
+        .pricebox {{
             background: rgba(255,255,255,0.9);
             border: 1px solid #e2e8f0;
             border-radius: 20px;
@@ -396,6 +424,32 @@ def _build_single_card_html(card_json: str) -> str:
             margin-top: 4px;
             color: #64748b;
             font-size: 0.9rem;
+        }}
+
+        .budgetbox {{
+            margin-top: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 14px;
+        }}
+
+        .budget-title {{
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }}
+
+        .budget-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #334155;
+            margin-top: 6px;
         }}
 
         .meta {{
@@ -442,17 +496,16 @@ def _build_single_card_html(card_json: str) -> str:
         }}
 
         .map {{
-            margin-top:14px;
             border-radius:18px;
             overflow:hidden;
             border:1px solid #e2e8f0;
-            height:180px;
+            min-height:240px;
             background:#e2e8f0;
         }}
 
         .map iframe {{
             width:100%;
-            height:100%;
+            height:240px;
             border:0;
         }}
 
@@ -464,30 +517,18 @@ def _build_single_card_html(card_json: str) -> str:
             font-weight:600;
         }}
 
-        .budgetbox {{
-            margin-top: 12px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 14px;
-        }}
+        @media (max-width: 640px) {{
+            .wrap {{
+                max-width: 390px;
+            }}
 
-        .budget-title {{
-            font-size: 0.72rem;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #64748b;
-            margin-bottom: 8px;
-        }}
+            .card-grid {{
+                grid-template-columns: 1fr;
+            }}
 
-        .budget-row {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
-            color: #334155;
-            margin-top: 6px;
+            .map iframe {{
+                height:180px;
+            }}
         }}
     </style>
     </head>
@@ -496,55 +537,53 @@ def _build_single_card_html(card_json: str) -> str:
             <div class="card">
                 <div class="topbar">
                     <div>
-                        <div class="title">{json.loads(card_json)["town"]} · {json.loads(card_json)["flat_type"]}</div>
-                        <div class="sub">{json.loads(card_json)["address"] or "Address unavailable"}</div>
+                        <div class="title">{card["town"]} · {card["flat_type"]}</div>
+                        <div class="sub">{card["address"] or "Address unavailable"}</div>
                     </div>
-                    <div class="tag" style="background:{json.loads(card_json)["label_color"]};">
-                        {json.loads(card_json)["label"]}
-                    </div>
-                </div>
-
-                <div class="pricebox">
-                    <div class="price">${json.loads(card_json)["asking"]:,}</div>
-                    <div class="fair">Predicted fair value: ${json.loads(card_json)["predicted"]:,}</div>
-                </div>
-
-                <div class="budgetbox">
-                    <div class="budget-title">Budget check</div>
-                    <div class="budget-row">
-                        <span>Your budget</span>
-                        <strong>
-                            {"$" + format(json.loads(card_json)["budget"], ",") if json.loads(card_json)["budget"] is not None else "Not set"}
-                        </strong>
-                    </div>
-                    <div class="budget-row">
-                        <span>Headroom</span>
-                        <strong style="color:{'#059E87' if json.loads(card_json)['budget_gap'] is not None and json.loads(card_json)['budget_gap'] >= 0 else '#dc2626'};">
-                            {
-                                (f"{json.loads(card_json)['budget_gap']:+,}")
-                                if json.loads(card_json)["budget_gap"] is not None
-                                else "N/A"
-                            }
-                        </strong>
+                    <div class="tag" style="background:{card["label_color"]};">
+                        {card["label"]}
                     </div>
                 </div>
 
-                <div class="meta">
-                    <div class="pill">📐 {json.loads(card_json)["area_sqft"]} sqft</div>
-                    <div class="pill">🏢 {json.loads(card_json)["storey"] or "-"}</div>
-                    <div class="pill">💹 {json.loads(card_json)["diff_pct"]:+.1f}% vs model</div>
+                <div class="card-grid">
+                    <div>
+                        <div class="pricebox">
+                            <div class="price">${card["asking"]:,}</div>
+                            <div class="fair">Predicted fair value: ${card["predicted"]:,}</div>
+                        </div>
+
+                        <div class="budgetbox">
+                            <div class="budget-title">Budget check</div>
+                            <div class="budget-row">
+                                <span>Your budget</span>
+                                <strong>{budget_text}</strong>
+                            </div>
+                            <div class="budget-row">
+                                <span>Headroom</span>
+                                <strong style="color:{budget_gap_color};">{budget_gap_text}</strong>
+                            </div>
+                        </div>
+
+                        <div class="meta">
+                            <div class="pill">📐 {area_sqft} sqft</div>
+                            <div class="pill">🏢 {storey}</div>
+                            <div class="pill">💹 {diff_pct:+.1f}% vs model</div>
+                        </div>
+
+                        <div class="match">
+                            <div class="match-title">Why it matches</div>
+                            <div class="match-text">{card["why"]}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="map">
+                            <iframe src="{card["map_url"]}" loading="lazy"></iframe>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="match">
-                    <div class="match-title">Why it matches</div>
-                    <div class="match-text">{json.loads(card_json)["why"]}</div>
-                </div>
-
-                <div class="map">
-                    <iframe src="{json.loads(card_json)["map_url"]}" loading="lazy"></iframe>
-                </div>
-
-                <div class="footer">Use the buttons below to save or pass</div>
+                <div class="footer">Use the Pass / Save buttons below</div>
             </div>
         </div>
     </body>

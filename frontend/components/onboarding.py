@@ -16,7 +16,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from backend.utils.constants import FLAT_TYPES, TOWNS, AMENITY_LABELS
-from backend.services.quiz import render_quiz, reset_quiz
+from backend.services.quiz import render_quiz, reset_quiz, seed_quiz_from_existing_preferences
 from backend.schemas.inputs import UserInputs
 
 try:
@@ -35,6 +35,7 @@ AMENITY_ICONS = {
     "schools": "🏫",
     "hawker": "🍜",
     "retail": "🛍️",
+    "supermarket": "🛒",
 }
 
 FRONTEND_AMENITY_LABELS = {
@@ -42,6 +43,7 @@ FRONTEND_AMENITY_LABELS = {
     "bus": "Bus stops",
     "hawker": "Hawker centres",
     "retail": "Shopping malls",
+    "supermarket": "Supermarkets",
     "healthcare": "Hospitals / Polyclinics",
     "schools": "Schools",
 }
@@ -75,7 +77,7 @@ AMENITY_KEY_MAP = {
     "bus": "bus",
     "hawker": "hawker",
     "mall": "retail",
-    "supermarket": "retail",
+    "supermarket": "supermarket",
     "polyclinic": "healthcare",
     "primary_school": "schools",
 }
@@ -134,7 +136,14 @@ def _back_btn(key: str = "back"):
                 st.session_state.pop("pref_amenity_rank", None)
                 st.session_state.pop("pref_amenity_weights", None)
                 st.session_state.onboarding_step = 7
-                st.session_state["quiz_step"] = "tiebreak"
+
+                if st.session_state.get("quiz_ties"):
+                    st.session_state["quiz_step"] = "tiebreak"
+                elif st.session_state.get("quiz_selected"):
+                    st.session_state["quiz_step"] = "quiz"
+                else:
+                    st.session_state["quiz_step"] = "select"
+
                 st.rerun()
             else:
                 st.session_state.onboarding_step -= 1
@@ -401,7 +410,11 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
     col = st.columns([1, 2, 1])[1]
     with col:
         if st.button("Get started →", key="welcome_next", type="primary", use_container_width=True):
-            reset_quiz()
+            if st.session_state.get("pref_amenity_rank"):
+                reset_quiz(prefill_from_existing=True)
+            else:
+                reset_quiz()
+
             st.session_state.onboarding_step = 1
             st.rerun()
 
@@ -520,7 +533,6 @@ def _render_flat_type():
     _step_label(2)
     _heading("What type of flat?", "Pick one or more — tap to select, tap again to deselect.")
 
-    # Multi-select: stored as a list in pref_flat_types
     selected_types: list = list(st.session_state.get("pref_flat_types") or ["4 ROOM"])
 
     cols = st.columns(len(FLAT_TYPES))
@@ -538,13 +550,10 @@ def _render_flat_type():
                 elif not is_selected:
                     selected_types.append(ft)
                 st.session_state.pref_flat_types = selected_types
-                # Reset the floor area manual flag so it re-auto-populates
                 st.session_state.pref_floor_area_sqft_manual = False
                 st.rerun()
 
-    # Live selection summary
     n = len(selected_types)
-    # Sort pills in FLAT_TYPES order
     ordered = [ft for ft in FLAT_TYPES if ft in selected_types]
     pills_html = "".join(
         f"<span style='display:inline-block;background:#e0e7ff;color:#3730a3;"
@@ -570,18 +579,16 @@ def _render_flat_type():
     _back_btn("ft_back")
 
 
-
-# Minimum floor area by flat type (sqft) — used to auto-populate the slider
 _FLAT_TYPE_MIN_SQFT = {
-    "1 ROOM":          300,
-    "2 ROOM":          380,
-    "3 ROOM":          600,
-    "4 ROOM":          900,
-    "5 ROOM":         1100,
-    "EXECUTIVE":      1300,
+    "1 ROOM": 300,
+    "2 ROOM": 380,
+    "3 ROOM": 600,
+    "4 ROOM": 900,
+    "5 ROOM": 1100,
+    "EXECUTIVE": 1300,
     "MULTI-GENERATION": 1100,
 }
-_SQFT_TO_SQM = 0.092903   # 1 sqft = 0.092903 sqm
+_SQFT_TO_SQM = 0.092903
 
 
 def _sqft_to_sqm(sqft: int) -> float:
@@ -593,16 +600,13 @@ def _render_floor_area():
     _step_label(3)
     _heading("What's your minimum floor area?")
 
-    # Determine auto-populated default from the *smallest* flat type chosen in step 2
     selected_flat_types = st.session_state.get("pref_flat_types") or ["4 ROOM"]
-    # "smallest" = lowest minimum sqft
     smallest_flat_type = min(
         selected_flat_types,
         key=lambda ft: _FLAT_TYPE_MIN_SQFT.get(ft, 900),
     )
     auto_min_sqft = _FLAT_TYPE_MIN_SQFT.get(smallest_flat_type, 900)
 
-    # "No requirement" toggle — stored as pref_floor_area_skip
     no_req = st.checkbox(
         "No minimum requirement — show me all sizes",
         value=st.session_state.get("pref_floor_area_skip", False),
@@ -618,7 +622,6 @@ def _render_floor_area():
         )
         area_sqft = None
     else:
-        # Show the auto-populate note only when the value hasn't been manually changed yet
         manually_set = st.session_state.get("pref_floor_area_sqft_manual", False)
         if not manually_set:
             st.markdown(
@@ -630,7 +633,6 @@ def _render_floor_area():
                 unsafe_allow_html=True,
             )
 
-        # Current slider value in sqft — default to auto_min_sqft
         current_sqft = st.session_state.get("pref_floor_area_sqft") or auto_min_sqft
 
         area_sqft = st.slider(
@@ -643,7 +645,6 @@ def _render_floor_area():
             label_visibility="collapsed",
         )
 
-        # Mark as manually set once the user moves the slider away from the default
         if area_sqft != auto_min_sqft:
             st.session_state.pref_floor_area_sqft_manual = True
 
@@ -659,7 +660,6 @@ def _render_floor_area():
 
     if _next_btn(key="area_next"):
         st.session_state.pref_floor_area_sqft = area_sqft
-        # Store in sqm for the backend (None = no filter)
         st.session_state.pref_floor_area = (
             _sqft_to_sqm(area_sqft) if area_sqft is not None else None
         )
@@ -797,6 +797,9 @@ def _render_lifestyle():
         "Answer a few quick questions so we can personalise your recommendations."
     )
 
+    if not st.session_state.get("quiz_selected") and st.session_state.get("pref_amenity_rank"):
+        seed_quiz_from_existing_preferences()
+
     scoring_weights, final_ranking, normalised_weights = render_quiz()
 
     if not final_ranking:
@@ -887,7 +890,6 @@ def _render_predicted_amenity_ranking():
 
 
 def _render_done() -> bool:
-    """Completion splash — returns True when the user clicks the CTA."""
     components.html(
         """<!DOCTYPE html>
 <html lang="en">
@@ -899,8 +901,6 @@ def _render_done() -> bool:
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;background:transparent;overflow:hidden;}
-
-/* ambient float */
 @keyframes f1{0%,100%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(14px,-22px) rotate(10deg)}75%{transform:translate(-10px,14px) rotate(-7deg)}}
 @keyframes f2{0%,100%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(-18px,16px) rotate(-12deg)}67%{transform:translate(13px,-11px) rotate(8deg)}}
 @keyframes f3{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(11px,20px) rotate(15deg)}}
@@ -908,17 +908,8 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
 @keyframes f5{0%,100%{transform:translate(0,0) rotate(0deg)}30%{transform:translate(17px,11px) rotate(13deg)}70%{transform:translate(-15px,-13px) rotate(-8deg)}}
 @keyframes f6{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-9px,22px) rotate(-14deg)}}
 @keyframes glowPulse{0%,100%{opacity:0.2;transform:translate(-50%,-50%) scale(1)}50%{opacity:0.5;transform:translate(-50%,-50%) scale(1.1)}}
-
-/* single shared entrance — every element uses this, only delay differs */
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(20px)}
-  to  {opacity:1;transform:translateY(0)}
-}
-
-/* gradient shine */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes shine{0%{background-position:200% center}100%{background-position:-200% center}}
-
-/* scene */
 .scene{
   position:relative;width:100%;height:420px;overflow:hidden;
   background:#ffffff;border-radius:24px;
@@ -935,8 +926,6 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
   align-items:center;justify-content:center;
   z-index:10;padding:2rem 2.5rem;text-align:center;
 }
-
-/* green check badge */
 .badge{
   display:inline-flex;align-items:center;gap:6px;
   background:#f0fdf4;border:1px solid #bbf7d0;
@@ -946,22 +935,16 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
   margin-bottom:1.6rem;
   opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 0.3s forwards;
 }
-
-/* small intro line */
 .intro{
   font-size:0.95rem;font-weight:500;color:#6b7280;
   margin-bottom:0.3rem;
   opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 0.65s forwards;
 }
-
-/* big dark heading */
 .big{
   font-size:clamp(2.4rem,6.5vw,3.4rem);font-weight:800;letter-spacing:-0.05em;
   color:#0b132d;line-height:1.0;margin-bottom:0.1rem;
   opacity:0;animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 1.05s forwards;
 }
-
-/* big gradient line + shine after it appears */
 .big-grad{
   font-size:clamp(2.4rem,6.5vw,3.4rem);font-weight:800;letter-spacing:-0.05em;
   line-height:1.0;margin-bottom:1.6rem;
@@ -972,8 +955,6 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
   animation:fadeUp 1.1s cubic-bezier(0.25,1,0.5,1) 1.45s forwards,
             shine 4s linear 2.8s infinite;
 }
-
-/* sub */
 .sub{
   font-size:0.84rem;color:#9ca3af;max-width:270px;
   line-height:1.75;font-weight:400;
@@ -1012,7 +993,6 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
         height=435,
         scrolling=False,
     )
-    # Button fades in last — same fadeUp, fires after sub finishes (~3.6s)
     st.markdown(
         """
         <style>
@@ -1049,7 +1029,6 @@ def build_inputs_from_prefs() -> UserInputs:
         if key not in amenity_weights:
             amenity_weights[key] = 0.0
 
-    # floor_area_sqm: stored in sqm by _render_floor_area; None = no minimum filter
     raw_sqm = st.session_state.get("pref_floor_area")
     floor_area_sqm = float(raw_sqm) if raw_sqm is not None else None
 

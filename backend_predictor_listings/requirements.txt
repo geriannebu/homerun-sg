@@ -10,3 +10,4 @@ lightgbm
 optuna
 python-dotenv
 joblib
+statsmodels

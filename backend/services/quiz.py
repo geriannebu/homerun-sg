@@ -1,6 +1,5 @@
 from __future__ import annotations
 import streamlit as st
-from backend.utils.constants import AMENITY_LABELS
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +59,16 @@ QUESTION_BANK = [
         ],
     },
 ]
+
+QUIZ_AMENITY_LABELS = {
+    "train": "MRT stations",
+    "bus": "Bus stops",
+    "hawker": "Hawker centres",
+    "mall": "Shopping malls",
+    "supermarket": "Supermarkets",
+    "polyclinic": "Hospitals / Polyclinics",
+    "primary_school": "Schools",
+}
 
 NO_PREF_LABEL = "No preference"
 TIE_THRESHOLD = 0.001
@@ -129,6 +138,47 @@ def _init_state(ss) -> None:
             ss[k] = v
 
 
+def seed_quiz_from_existing_preferences() -> None:
+    ss = st.session_state
+    _init_state(ss)
+
+    previous_selected = list(ss.get("quiz_selected", []) or [])
+    previous_answers = dict(ss.get("quiz_answers", {}) or {})
+
+    if previous_selected:
+        ss["quiz_selected"] = previous_selected
+        ss["quiz_answers"] = previous_answers
+        ss["quiz_step"] = "select"
+        return
+
+    amenity_rank = ss.get("pref_amenity_rank") or []
+    if not amenity_rank:
+        return
+
+    reverse_key_map = {
+        "mrt": "train",
+        "bus": "bus",
+        "hawker": "hawker",
+        "retail": "mall",
+        "supermarket": "supermarket",
+        "healthcare": "polyclinic",
+        "schools": "primary_school",
+    }
+
+    selected = []
+    for key in amenity_rank:
+        old_key = reverse_key_map.get(key)
+        if old_key and old_key not in selected:
+            selected.append(old_key)
+
+    if not selected:
+        return
+
+    ss["quiz_selected"] = selected
+    ss["quiz_answers"] = previous_answers
+    ss["quiz_step"] = "select"
+
+
 def render_quiz() -> tuple[dict[str, float], list[str], dict[str, float]]:
     """
     Returns:
@@ -143,11 +193,17 @@ def render_quiz() -> tuple[dict[str, float], list[str], dict[str, float]]:
         st.markdown("**Step 1 — What amenities matter to you?**")
         st.caption("Select everything you care about. We'll personalise the quiz to match.")
 
+        existing_selected = set(ss.get("quiz_selected", []))
+
         chosen = []
         cols = st.columns(2)
-        for i, (key, label) in enumerate(AMENITY_LABELS.items()):
+        for i, (key, label) in enumerate(QUIZ_AMENITY_LABELS.items()):
+            cb_key = f"_qcb_{key}"
+            if cb_key not in ss:
+                ss[cb_key] = key in existing_selected
+
             with cols[i % 2]:
-                if st.checkbox(label, key=f"_qcb_{key}"):
+                if st.checkbox(label, key=cb_key):
                     chosen.append(key)
 
         c1, c2 = st.columns([1, 5])
@@ -230,7 +286,7 @@ def render_quiz() -> tuple[dict[str, float], list[str], dict[str, float]]:
         st.caption("A few options came out very close, so this helps us refine the order.")
 
         for a1, a2 in ties:
-            label1, label2 = AMENITY_LABELS[a1], AMENITY_LABELS[a2]
+            label1, label2 = QUIZ_AMENITY_LABELS[a1], QUIZ_AMENITY_LABELS[a2]
             key = f"{a1}__{a2}"
 
             st.markdown(f"**{label1} vs {label2}**")
@@ -277,7 +333,10 @@ def render_quiz() -> tuple[dict[str, float], list[str], dict[str, float]]:
     return {}, [], {}
 
 
-def reset_quiz() -> None:
+def reset_quiz(prefill_from_existing: bool = False) -> None:
+    previous_selected = list(st.session_state.get("quiz_selected", []) or [])
+    previous_answers = dict(st.session_state.get("quiz_answers", {}) or {})
+
     for key in [
         "quiz_step",
         "quiz_selected",
@@ -289,3 +348,14 @@ def reset_quiz() -> None:
         "quiz_final_ranking",
     ]:
         st.session_state.pop(key, None)
+
+    for key in list(st.session_state.keys()):
+        if key.startswith("_qcb_") or key.startswith("_qr_") or key.startswith("_qtb_"):
+            st.session_state.pop(key, None)
+
+    if prefill_from_existing:
+        if previous_selected:
+            st.session_state["quiz_selected"] = previous_selected
+        if previous_answers:
+            st.session_state["quiz_answers"] = previous_answers
+        seed_quiz_from_existing_preferences()
