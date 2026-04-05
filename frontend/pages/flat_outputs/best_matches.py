@@ -227,8 +227,48 @@ def render_listing_tab(listings_df: pd.DataFrame):
     budget = getattr(inputs, "budget", None)
     current_card = _serialize_card(current_row, inputs, budget=budget)
 
-    st.markdown("## These are your recommended flats")
-    st.caption("Swipe through your best matches, then save the ones you like.")     
+    st.markdown(
+        """
+        <div style="
+            padding: 18px 18px 16px 18px;
+            margin-bottom: 12px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(255,68,88,0.12) 0%, rgba(255,107,107,0.10) 45%, rgba(255,240,244,0.95) 100%);
+            border: 1px solid rgba(255,68,88,0.20);
+            box-shadow: 0 10px 24px rgba(255,68,88,0.10);
+        ">
+            <div style="
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: #FF4458;
+                margin-bottom: 6px;
+            ">
+                HomeRun recommendations
+            </div>
+            <div style="
+                font-size: 1.85rem;
+                font-weight: 800;
+                letter-spacing: -0.04em;
+                color: #7f1d3f;
+                line-height: 1.05;
+                margin-bottom: 6px;
+            ">
+                Your top-matched flats
+            </div>
+            <div style="
+                font-size: 0.94rem;
+                color: #9f1239;
+                font-weight: 500;
+                line-height: 1.5;
+            ">
+                Ranked to best match your budget, lifestyle, and amenity priorities using our in-house model.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Render ONLY the current card so visuals and details stay synced
     html = _build_single_card_html(json.dumps(current_card))
