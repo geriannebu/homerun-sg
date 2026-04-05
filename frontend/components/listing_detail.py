@@ -48,6 +48,16 @@ def _format_distance(dist):
     except Exception:
         return "N/A"
 
+def _format_remaining_lease(value):
+    try:
+        if value is None or pd.isna(value):
+            return "-"
+        value = float(value)
+        if value <= 0:
+            return "-"
+        return f"{int(round(value))} yrs"
+    except Exception:
+        return "-"
 
 def _val_style(diff):
     if diff <= -5:
@@ -231,8 +241,9 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
         address = str(row.get("address", row.get("full_address", "")))
         lat = row.get("lat")
         lon = row.get("lon")
-        remaining = row.get("remaining_lease", row.get("remaining_lease_years"))
-
+        remaining = _format_remaining_lease(
+            row.get("remaining_lease", row.get("remaining_lease_years"))
+        )
         train_dist = row.get("train_1_dist_m")
         bus_dist = row.get("bus_1_dist_m")
         school_dist = row.get("school_1_dist_m")

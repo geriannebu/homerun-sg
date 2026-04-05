@@ -84,6 +84,17 @@ def _sqm_to_sqft(area_sqm) -> int:
         return int(round(float(area_sqm) * 10.7639))
     except Exception:
         return 0
+    
+def _format_remaining_lease(value):
+    try:
+        if value is None or pd.isna(value):
+            return "-"
+        value = float(value)
+        if value <= 0:
+            return "-"
+        return f"{int(round(value))} yrs"
+    except Exception:
+        return "-"
 
 
 def _serialize_card(row, inputs, budget=None) -> dict:
@@ -148,6 +159,9 @@ def _serialize_card(row, inputs, budget=None) -> dict:
         "budget_gap": budget_gap,
         "budget_gap_pct": budget_gap_pct,
         "is_within_budget": is_within_budget,
+        "remaining_lease": _format_remaining_lease(
+            row.get("remaining_lease", row.get("remaining_lease_years"))
+        ),
     }
 
     for amen in AMENITY_ICONS:

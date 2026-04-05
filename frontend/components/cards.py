@@ -76,9 +76,22 @@ def render_homerun_pick(inputs: UserInputs, bundle: Dict[str,Any]):
     st.write(f"**Town:** {top['town']}")
     st.write(f"**Flat Type:** {top.get('flat_type', 'N/A')}")
     st.write(f"**Floor Area:** {top.get('floor_area_sqm', 0)} sqm")
+    storey = top.get("storey_range") or top.get("storey_midpoint") or "N/A"
+
+    remaining_raw = top.get("remaining_lease")
+    if remaining_raw is None:
+        remaining_raw = top.get("remaining_lease_years")
+
+    try:
+        remaining_lease = f"{int(round(float(remaining_raw)))} yrs" if remaining_raw is not None else "N/A"
+    except Exception:
+        remaining_lease = "N/A"
+
+    st.write(f"**Storey:** {storey}")
+    st.write(f"**Remaining Lease:** {remaining_lease}")
     st.write(f"**Asking Price:** {fmt_sgd(top['asking_price'])}")
     st.write(f"**Predicted Price:** {fmt_sgd(top['predicted_price'])}")
-    st.write(f"**Valuation:** {top['valuation_pct']}")
+    st.write(f"**Valuation Gap:** {float(top.get('valuation_pct', 0)):+.1f}%")    
     st.write(f"**Overall Score:** {float(top.get('final_score', 0)) * 100:.1f}/100")
 
     # Button to open listing detail dialog
