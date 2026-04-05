@@ -12,11 +12,10 @@ import streamlit as st
 import pydeck as pdk
 import numpy as np
 
-from backend.services.map_service import mock_listing_points
 from backend.utils.formatters import fmt_sgd, valuation_tag_html
 from frontend.state.session import get_active_session_liked_df, get_active_session
-from frontend.components.listing_detail import show_listing_detail
-from backend.utils.constants import AMENITY_COLORS, AMENITY_LABELS
+from frontend.components.listing_detail import show_listing_detail, _val_style
+from backend.utils.constants import AMENITY_COLORS, AMENITY_LABELS, TOWN_COORDS
 from frontend.pages.flat_outputs.map_view import top_priority_keys, add_nearest_amenity_distances
 
 
@@ -95,6 +94,15 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
 
         diff_raw = row.get("asking_vs_predicted_pct", row.get("valuation_pct", np.nan))
         diff = float(diff_raw) if pd.notna(diff_raw) else np.nan
+        tag_html = ""
+        if pd.notna(diff):
+            val_label, val_color = _val_style(diff)
+            tag_html = (
+                f"<span style='display:inline-block;padding:5px 10px;border-radius:999px;"
+                f"background:{val_color};color:white;font-weight:700;font-size:0.76rem;'>"
+                f"{_escape(val_label)}"
+                f"</span>"
+            )
 
         badge = "♥ Saved"
         badge_col = "#059E87"
@@ -360,7 +368,6 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
     with st.expander("View saved flats map", expanded=False):
         st.caption("Showing your saved flats for the current session, with nearby amenities.")
 
-        saved_points = mock_listing_points(liked_df)
         latest_inputs = st.session_state.get("latest_inputs")
         latest_map_bundle = st.session_state.get("latest_map_bundle")
 
@@ -377,118 +384,208 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
                 amenities_df = amenities_df.copy()
                 amenities_df["amenity_type"] = amenities_df["amenity_type"].apply(_normalize_amenity_key)
 
+        saved_points = liked_df.copy()
+
         if saved_points is not None and not saved_points.empty:
+            saved_points = saved_points.copy()
+
+            if "lat" in saved_points.columns:
+                saved_points["lat"] = pd.to_numeric(saved_points["lat"], errors="coerce")
+            else:
+                saved_points["lat"] = np.nan
+
+            if "lon" in saved_points.columns:
+                saved_points["lon"] = pd.to_numeric(saved_points["lon"], errors="coerce")
+            else:
+                saved_points["lon"] = np.nan
+
+            if "is_hypothetical" not in saved_points.columns:
+                saved_points["is_hypothetical"] = False
+
+            # For hypothetical flats without exact coordinates, fall back to town centre
+            hyp_mask = saved_points["is_hypothetical"].fillna(False)
+            for idx, r in saved_points[hyp_mask].iterrows():
+                town_key = str(r.get("town", "")).upper().strip()
+                if (pd.isna(r.get("lat")) or pd.isna(r.get("lon"))) and town_key in TOWN_COORDS:
+                    saved_points.at[idx, "lat"] = TOWN_COORDS[town_key][0]
+                    saved_points.at[idx, "lon"] = TOWN_COORDS[town_key][1]
+
+            plotted_points = saved_points.dropna(subset=["lat", "lon"]).copy()
+
             if not amenities_df.empty and visible:
                 filtered_amenities = amenities_df[amenities_df["amenity_type"].isin(visible)].copy()
-                saved_points = add_nearest_amenity_distances(saved_points, filtered_amenities, visible)
             else:
                 filtered_amenities = pd.DataFrame()
 
+            amenity_distance_cols = {
+                "mrt": "train_1_dist_m",
+                "bus": "bus_1_dist_m",
+                "schools": "school_1_dist_m",
+                "hawker": "hawker_1_dist_m",
+                "retail": "mall_1_dist_m",
+                "healthcare": "polyclinic_1_dist_m",
+                "supermarket": "supermarket_1_dist_m",
+            }
+
+            def _dist_km_from_row(r, amenity_type):
+                col = amenity_distance_cols.get(amenity_type)
+                if not col:
+                    return ""
+                val = r.get(col)
+                if val is None or pd.isna(val):
+                    return ""
+                try:
+                    return f"{float(val) / 1000:.2f}"
+                except Exception:
+                    return ""
+
             def saved_tooltip(r):
+                title = r.get("address", r.get("listing_id", "Unknown listing"))
+
                 lines = [
-                    f"<b>{_escape(r.get('listing_id', 'Unknown listing'))}</b>",
+                    f"<b>{_escape(title)}</b>",
                     f"<b>Town:</b> {_escape(r.get('town', '—'))}",
                     f"<b>Type:</b> {_escape(r.get('flat_type', '—'))}",
                 ]
 
+                if bool(r.get("is_hypothetical", False)):
+                    lines.append("<b>Location:</b> Approximate town-level estimate")
+
                 if pd.notna(r.get("asking_price")):
                     lines.append(f"<b>Asking price:</b> ${int(r['asking_price']):,}")
                 elif pd.notna(r.get("price")):
-                    lines.append(f"<b>Asking price:</b> ${int(r['price']):,}")
+                    lines.append(f"<b>Price:</b> ${int(r['price']):,}")
+                elif pd.notna(r.get("predicted_price")):
+                    lines.append(f"<b>Predicted price:</b> ${int(r['predicted_price']):,}")
 
                 for amenity_type in visible:
-                    col = f"nearest_{amenity_type}_km"
-                    if col in r and r[col] != "":
+                    km_val = _dist_km_from_row(r, amenity_type)
+                    if km_val != "":
+                        prefix = "Estimated nearest" if bool(r.get("is_hypothetical", False)) else "Nearest"
                         lines.append(
-                            f"<b>Nearest {_escape(_safe_amenity_label(amenity_type))}:</b> {_escape(r[col])} km"
+                            f"<b>{prefix} {_escape(_safe_amenity_label(amenity_type))}:</b> {km_val} km"
                         )
 
                 return "<br/>".join(lines)
 
-            saved_points["tooltip_html"] = saved_points.apply(saved_tooltip, axis=1)
+            if not plotted_points.empty:
+                plotted_points["tooltip_html"] = plotted_points.apply(saved_tooltip, axis=1)
 
-            center_lat = float(saved_points["lat"].mean())
-            center_lon = float(saved_points["lon"].mean())
+                center_lat = float(plotted_points["lat"].mean())
+                center_lon = float(plotted_points["lon"].mean())
 
-            layers = []
+                real_points = plotted_points[~plotted_points["is_hypothetical"].fillna(False)].copy()
+                hyp_points = plotted_points[plotted_points["is_hypothetical"].fillna(False)].copy()
 
-            if not filtered_amenities.empty:
-                for amenity_type in visible:
-                    sub = filtered_amenities[filtered_amenities["amenity_type"] == amenity_type]
-                    if not sub.empty:
-                        sub = sub.copy()
-                        amenity_label = _safe_amenity_label(amenity_type)
-                        amenity_color = _safe_amenity_color(amenity_type)
+                layers = []
 
-                        sub["tooltip_html"] = sub.apply(
-                            lambda r: (
-                                f"<b>{_escape(amenity_label)}</b><br/>"
-                                f"<b>Town:</b> {_escape(r.get('town', '—'))}<br/>"
-                                f"<b>Name:</b> {_escape(r.get('amenity_label', '—'))}<br/>"
-                                f"<b>Postal code:</b> {_escape(r.get('postal_code', '—'))}"
-                            ),
-                            axis=1,
-                        )
+                # Optional amenity markers for context
+                if not filtered_amenities.empty:
+                    for amenity_type in visible:
+                        sub = filtered_amenities[filtered_amenities["amenity_type"] == amenity_type]
+                        if not sub.empty:
+                            sub = sub.copy()
+                            amenity_label = _safe_amenity_label(amenity_type)
+                            amenity_color = _safe_amenity_color(amenity_type)
 
-                        layers.append(
-                            pdk.Layer(
-                                "ScatterplotLayer",
-                                data=sub,
-                                get_position="[lon, lat]",
-                                get_fill_color=amenity_color,
-                                get_radius=260,
-                                pickable=True,
+                            sub["tooltip_html"] = sub.apply(
+                                lambda r: (
+                                    f"<b>{_escape(amenity_label)}</b><br/>"
+                                    f"<b>Town:</b> {_escape(r.get('town', '—'))}<br/>"
+                                    f"<b>Name:</b> {_escape(r.get('amenity_label', '—'))}<br/>"
+                                    f"<b>Postal code:</b> {_escape(r.get('postal_code', '—'))}"
+                                ),
+                                axis=1,
                             )
+
+                            layers.append(
+                                pdk.Layer(
+                                    "ScatterplotLayer",
+                                    data=sub,
+                                    get_position="[lon, lat]",
+                                    get_fill_color=amenity_color,
+                                    get_radius=220 if amenity_type == "bus" else 260,
+                                    pickable=True,
+                                )
+                            )
+
+
+                # Real listings: exact points
+                if not real_points.empty:
+                    layers.append(
+                        pdk.Layer(
+                            "ScatterplotLayer",
+                            data=real_points,
+                            get_position="[lon, lat]",
+                            get_fill_color=[245, 197, 66, 230],
+                            get_line_color=[70, 70, 70, 220],
+                            line_width_min_pixels=2,
+                            stroked=True,
+                            filled=True,
+                            get_radius=420,
+                            pickable=True,
                         )
+                    )
 
-            layers.append(
-                pdk.Layer(
-                    "ScatterplotLayer",
-                    data=saved_points,
-                    get_position="[lon, lat]",
-                    get_fill_color=[245, 197, 66, 230],
-                    get_line_color=[70, 70, 70, 220],
-                    line_width_min_pixels=2,
-                    stroked=True,
-                    filled=True,
-                    get_radius=420,
-                    pickable=True,
+                # Hypothetical listings: approximate town-level bubble
+                if not hyp_points.empty:
+                    layers.append(
+                        pdk.Layer(
+                            "ScatterplotLayer",
+                            data=hyp_points,
+                            get_position="[lon, lat]",
+                            get_fill_color=[255, 68, 88, 60],
+                            get_line_color=[255, 68, 88, 180],
+                            line_width_min_pixels=2,
+                            stroked=True,
+                            filled=True,
+                            get_radius=1800,
+                            pickable=True,
+                        )
+                    )
+                    layers.append(
+                        pdk.Layer(
+                            "ScatterplotLayer",
+                            data=hyp_points,
+                            get_position="[lon, lat]",
+                            get_fill_color=[255, 68, 88, 220],
+                            get_radius=140,
+                            pickable=True,
+                        )
+                    )
+
+                deck = pdk.Deck(
+                    map_provider="carto",
+                    map_style="light",
+                    initial_view_state=pdk.ViewState(
+                        latitude=center_lat,
+                        longitude=center_lon,
+                        zoom=11.8,
+                        pitch=0,
+                    ),
+                    layers=layers,
+                    tooltip={
+                        "html": "{tooltip_html}",
+                        "style": {"backgroundColor": "white", "color": "black"},
+                    },
                 )
-            )
 
-            deck = pdk.Deck(
-                map_provider="carto",
-                map_style="light",
-                initial_view_state=pdk.ViewState(
-                    latitude=center_lat,
-                    longitude=center_lon,
-                    zoom=11.2,
-                    pitch=0,
-                ),
-                layers=layers,
-                tooltip={
-                    "html": "{tooltip_html}",
-                    "style": {"backgroundColor": "white", "color": "black"},
-                },
-            )
-
-            st.pydeck_chart(deck, use_container_width=True)
+                st.pydeck_chart(deck, use_container_width=True)
+            else:
+                st.info("Saved flats do not have mappable coordinates yet.")
 
             if visible:
-                dist_cols = [f"nearest_{k}_km" for k in visible if f"nearest_{k}_km" in saved_points.columns]
-                if dist_cols:
-                    summary = saved_points[["listing_id", "town"] + dist_cols].copy()
-                    rename_map = {"listing_id": "Listing ID", "town": "Town"}
+                summary = saved_points[["listing_id", "town"]].copy()
 
-                    for k in visible:
-                        col = f"nearest_{k}_km"
-                        if col in summary.columns:
-                            rename_map[col] = f"Nearest {_safe_amenity_label(k)} (km)"
+                for amenity_type in visible:
+                    source_col = amenity_distance_cols.get(amenity_type)
+                    if source_col in saved_points.columns:
+                        summary[f"Nearest {_safe_amenity_label(amenity_type)} (km)"] = (
+                            pd.to_numeric(saved_points[source_col], errors="coerce") / 1000
+                        ).round(2)
 
-                    summary = summary.rename(columns=rename_map)
-
-                    st.markdown("**Nearest amenity distances**")
-                    st.dataframe(summary, use_container_width=True, hide_index=True)
+                st.markdown("**Nearest amenity distances**")
+                st.dataframe(summary, use_container_width=True, hide_index=True)
         else:
             st.info("No saved flats available to show on the map.")
 

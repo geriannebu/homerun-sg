@@ -4,10 +4,88 @@ from typing import Any, Dict
 import numpy as np
 import pandas as pd
 import streamlit as st
+import pydeck as pdk
 
 from backend.utils.formatters import fmt_sgd
+from backend.utils.constants import TOWN_COORDS
 from frontend.state.session import record_swipe
 
+
+def _town_circle_iframe(town: str, height: int = 220) -> str:
+    if not town:
+        return ""
+
+    coords = TOWN_COORDS.get(str(town).upper().strip())
+    if not coords:
+        return ""
+
+    lat, lon = coords
+    src = (
+        f"https://www.openstreetmap.org/export/embed.html"
+        f"?bbox={lon-0.02},{lat-0.015},{lon+0.02},{lat+0.015}"
+        f"&layer=mapnik&marker={lat},{lon}"
+    )
+    return f'<iframe src="{src}" width="100%" height="{height}" style="border:none;border-radius:12px;"></iframe>'
+
+def _render_town_circle_map(town: str):
+    if not town:
+        return
+
+    coords = TOWN_COORDS.get(str(town).upper().strip())
+    if not coords:
+        return
+
+    lat, lon = coords
+
+    circle_df = pd.DataFrame([
+        {
+            "town": town,
+            "lat": lat,
+            "lon": lon,
+            "tooltip_html": f"<b>{town}</b><br/>Approximate town-level area for hypothetical flat",
+        }
+    ])
+
+    layers = [
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=circle_df,
+            get_position="[lon, lat]",
+            get_fill_color=[255, 68, 88, 60],
+            get_line_color=[255, 68, 88, 180],
+            line_width_min_pixels=2,
+            stroked=True,
+            filled=True,
+            get_radius=1800,
+            pickable=True,
+        ),
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=circle_df,
+            get_position="[lon, lat]",
+            get_fill_color=[255, 68, 88, 220],
+            get_radius=120,
+            pickable=True,
+        ),
+    ]
+
+    deck = pdk.Deck(
+        map_provider="carto",
+        map_style="light",
+        initial_view_state=pdk.ViewState(
+            latitude=lat,
+            longitude=lon,
+            zoom=12,
+            pitch=0,
+        ),
+        layers=layers,
+        tooltip={
+            "html": "{tooltip_html}",
+            "style": {"backgroundColor": "white", "color": "black"},
+        },
+    )
+
+    st.pydeck_chart(deck, use_container_width=True)
 
 def _map_iframe(lat, lon, height: int = 220) -> str:
     if lat is None or lon is None:
@@ -219,11 +297,28 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
 
     @st.dialog(dialog_title, width="large")
     def _render_dialog():
-        asking = int(float(row.get("asking_price", 0) or 0))
-        predicted = int(float(row.get("predicted_price", 0) or 0))
+        asking_raw = row.get("asking_price", row.get("price", None))
+        predicted_raw = row.get("predicted_price", None)
 
-        diff_raw = row.get("asking_vs_predicted_pct", row.get("valuation_pct", 0))
-        diff = float(diff_raw) if diff_raw is not None and not pd.isna(diff_raw) else 0.0
+        try:
+            asking = int(float(asking_raw)) if asking_raw is not None and not pd.isna(asking_raw) else None
+        except Exception:
+            asking = None
+
+        try:
+            predicted = int(float(predicted_raw)) if predicted_raw is not None and not pd.isna(predicted_raw) else None
+        except Exception:
+            predicted = None
+
+        diff_raw = row.get("asking_vs_predicted_pct", row.get("valuation_pct", None))
+        diff = float(diff_raw) if diff_raw is not None and not pd.isna(diff_raw) else None
+
+        if diff is not None:
+            val_label, val_color = _val_style(diff)
+            sign = "+" if diff >= 0 else ""
+        else:
+            val_label, val_color = "Model estimate", "#64748b"
+            sign = ""
 
         ci_low = row.get("predicted_price_lower")
         ci_high = row.get("predicted_price_upper")
@@ -280,9 +375,6 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
         amenity_color = _score_color(amenity_score) if pd.notna(amenity_score) else "#94a3b8"
         value_color = _score_color(value_score) if pd.notna(value_score) else "#94a3b8"
         final_color = _score_color(final_score) if pd.notna(final_score) else "#94a3b8"
-
-        val_label, val_color = _val_style(diff)
-        sign = "+" if diff >= 0 else ""
 
         if show_actions:
             liked_ids = [str(x) for x in session_data.get("liked_ids", [])] if session_data else []
@@ -350,19 +442,19 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
                     <div style="flex:1;min-width:160px;">
                         <div style="font-size:0.76rem;color:#64748b;font-weight:700;">Asking price</div>
                         <div style="font-size:1.45rem;font-weight:800;color:#0f172a;margin-top:4px;">
-                            {fmt_sgd(asking)}
+                            {fmt_sgd(asking) if asking is not None else '-'}
                         </div>
                     </div>
                     <div style="flex:1;min-width:160px;">
                         <div style="font-size:0.76rem;color:#64748b;font-weight:700;">Predicted fair value</div>
                         <div style="font-size:1.45rem;font-weight:800;color:#0f172a;margin-top:4px;">
-                            {fmt_sgd(predicted)}
+                            {fmt_sgd(predicted) if predicted is not None else '-'}
                         </div>
                     </div>
                     <div style="flex:1;min-width:160px;">
                         <div style="font-size:0.76rem;color:#64748b;font-weight:700;">Value gap</div>
                         <div style="font-size:1.45rem;font-weight:800;color:{val_color};margin-top:4px;">
-                            {sign}{diff:.1f}%
+                            {f"{sign}{diff:.1f}%" if diff is not None else "—"}
                         </div>
                     </div>
                 </div>
@@ -611,8 +703,17 @@ def show_listing_detail(payload: Dict[str, Any] | str | int, show_actions: bool 
             unsafe_allow_html=True,
         )
 
-        if lat is not None and lon is not None:
+        has_exact_location = (
+            lat is not None and lon is not None and
+            not pd.isna(lat) and not pd.isna(lon)
+        )
+
+        if has_exact_location:
             st.markdown("### Location")
             st.markdown(_map_iframe(lat, lon), unsafe_allow_html=True)
+        elif bool(row.get("is_hypothetical", False)):
+            st.markdown("### Approximate location")
+            st.caption("Town-level estimate for a hypothetical flat, not an exact address.")
+            _render_town_circle_map(town)
 
     _render_dialog()
