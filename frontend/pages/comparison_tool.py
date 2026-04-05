@@ -118,11 +118,6 @@ def _comparison_card_subtitle(row):
     return address
 
 
-def _source_legend_label(row):
-    source = row.get("comparison_source", "Discover")
-    flat_type = row.get("flat_type", "Flat")
-    town = row.get("town", "Unknown")
-    return f"{source} ({flat_type} at {town})"
 
 
 # =========================================================
@@ -139,7 +134,7 @@ def _render_summary_cards(selected_df):
     best_value_label = flat_map.get(best_value["listing_id"], best_value["listing_id"])
     best_access_label = flat_map.get(best_access["listing_id"], best_access["listing_id"])
 
-    st.markdown("### Summary of Best Performers")
+    st.markdown("### Summary of results")
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Best overall", best_overall_label, f"{best_overall['overall_score']:.1f}/100")
@@ -262,26 +257,51 @@ def _render_listing_score_cards(selected_df):
 def _render_metric_bar_chart(selected_df, metric_col, chart_title):
     chart_df = selected_df.copy()
     chart_df[metric_col] = pd.to_numeric(chart_df[metric_col], errors="coerce").fillna(0)
-    chart_df["legend_label"] = chart_df.apply(_source_legend_label, axis=1)
     chart_df["flat_label"] = [_flat_letter_label(i) for i in range(len(chart_df))]
 
-    chart = (
+    flat_order = [_flat_letter_label(i) for i in range(len(chart_df))]
+    chart_df["score_label"] = chart_df[metric_col].map(lambda x: f"{x:.1f}")
+
+    bars = (
         alt.Chart(chart_df)
         .mark_bar()
         .encode(
-            x=alt.X(f"{metric_col}:Q", title="Score", scale=alt.Scale(domain=[0, 100])),
-            y=alt.Y("flat_label:N", sort="-x", title="Flat"),
-            color=alt.Color("legend_label:N", title="Listing type"),
+            x=alt.X(
+                f"{metric_col}:Q",
+                title="Score",
+                scale=alt.Scale(domain=[0, 100])
+            ),
+            y=alt.Y(
+                "flat_label:N",
+                sort=flat_order,
+                title="Flat"
+            ),
             tooltip=[
                 alt.Tooltip("flat_label:N", title="Flat"),
                 alt.Tooltip("listing_id:N", title="Listing ID"),
-                alt.Tooltip("legend_label:N", title="Legend"),
                 alt.Tooltip("town:N", title="Town"),
                 alt.Tooltip("flat_type:N", title="Flat type"),
                 alt.Tooltip(f"{metric_col}:Q", title="Score", format=".1f"),
             ],
         )
-        .properties(height=max(240, 45 * len(chart_df)), title=chart_title)
+    )
+
+    text = (
+        alt.Chart(chart_df)
+        .mark_text(align="left", dx=6)
+        .encode(
+            x=alt.X(f"{metric_col}:Q"),
+            y=alt.Y("flat_label:N", sort=flat_order),
+            text=alt.Text("score_label:N"),
+        )
+    )
+
+    chart = (
+        (bars + text)
+        .properties(
+            height=max(240, 45 * len(chart_df)),
+            title=chart_title
+        )
     )
 
     st.altair_chart(chart, use_container_width=True)
