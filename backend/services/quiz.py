@@ -17,8 +17,8 @@ QUESTION_BANK = [
         "id": "q2",
         "text": "On most days, how do you usually handle meals?",
         "options": [
-            {"id": "q2_a", "label": "I like affordable cooked food nearby", "amenity": "hawker"},
-            {"id": "q2_b", "label": "I usually buy food while running errands at a mall", "amenity": "mall"},
+            {"id": "q2_a", "label": "I usually prefer affordable hawker food nearby", "amenity": "hawker"},
+            {"id": "q2_b", "label": "I like to shop and buy food from malls", "amenity": "mall"},
             {"id": "q2_c", "label": "I prefer buying groceries and preparing food at home", "amenity": "supermarket"},
         ],
     },
@@ -33,15 +33,6 @@ QUESTION_BANK = [
     },
     {
         "id": "q4",
-        "text": "What sounds most like your usual weekend?",
-        "options": [
-            {"id": "q4_a", "label": "Eating around the neighbourhood and staying close to home", "amenity": "hawker"},
-            {"id": "q4_b", "label": "Shopping, errands, cafés, or mall time", "amenity": "mall"},
-            {"id": "q4_c", "label": "Stocking up on groceries for the week", "amenity": "supermarket"},
-        ],
-    },
-    {
-        "id": "q5",
         "text": "If you had to prioritise one, which would you choose?",
         "options": [
             {"id": "q5_a", "label": "Being near MRT over having more food options", "amenity": "train"},
@@ -82,7 +73,7 @@ def _build_active_questions(selected: list[str]) -> list[dict]:
                 "options": options,
             })
 
-    return active[:5]
+    return active[:4]
 
 
 def _compute_normalised_weights(
