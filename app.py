@@ -757,27 +757,64 @@ def _render_value_strip(bundle: dict, inputs):
 
     st.markdown(
         f"""
-        <div style="display:flex;align-items:center;
+        <style>
+        .hr-tip {{ position:relative; display:inline-flex; align-items:center; cursor:help; }}
+        .hr-tip .hr-tt {{
+            visibility:hidden; opacity:0;
+            position:absolute; bottom:150%; left:50%; transform:translateX(-50%);
+            background:#1e293b; color:#f8fafc;
+            padding:9px 12px; border-radius:10px;
+            font-size:0.68rem; font-weight:500; line-height:1.55;
+            width:220px; white-space:normal;
+            text-transform:none; letter-spacing:0;
+            pointer-events:none;
+            box-shadow:0 4px 16px rgba(0,0,0,0.25);
+            transition:opacity 0.15s ease, visibility 0.15s ease;
+            z-index:9999;
+        }}
+        .hr-tip:hover .hr-tt {{ visibility:visible; opacity:1; }}
+        </style>
+        <div style="display:flex;align-items:stretch;
                     background:#f8fafc;border:1px solid #eef2f7;border-radius:16px;
-                    margin-bottom:6px;overflow:hidden;">
+                    margin-bottom:6px;overflow:visible;">
             <div style="flex:1;padding:10px 14px;">
                 <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
-                             letter-spacing:0.09em;color:#94a3b8;">Median predicted value</div>
+                             letter-spacing:0.09em;color:#94a3b8;display:flex;align-items:center;gap:4px;">
+                    Median predicted value
+                    <span class="hr-tip">
+                        <span style="font-size:0.7rem;opacity:0.45;line-height:1;">ℹ️</span>
+                        <span class="hr-tt">
+                            The middle estimated resale price across flats matching your filters.
+                            Half are predicted to sell below this, half above —
+                            a realistic benchmark for what similar flats are worth right now.
+                        </span>
+                    </span>
+                </div>
                 <div style="font-size:1.0rem;font-weight:800;color:#0f172a;
                              letter-spacing:-0.025em;margin-top:1px;">
                     S${pred:,.0f}
                 </div>
             </div>
-            <div style="width:1px;height:36px;background:#e8edf4;flex-shrink:0;"></div>
+            <div style="width:1px;background:#e8edf4;flex-shrink:0;"></div>
             <div style="flex:1.4;padding:10px 14px;">
                 <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
-                             letter-spacing:0.09em;color:#94a3b8;">Median 95% price range</div>
-                <div style="font-size:0.82rem;font-weight:800;color:#0f172a;
-                             letter-spacing:-0.02em;margin-top:1px;white-space:nowrap;">
+                             letter-spacing:0.09em;color:#94a3b8;display:flex;align-items:center;gap:4px;">
+                    Median 95% price range
+                    <span class="hr-tip">
+                        <span style="font-size:0.7rem;opacity:0.45;line-height:1;">ℹ️</span>
+                        <span class="hr-tt">
+                            The range our model thinks the flat is likely worth.
+                            There's a 95% chance the true fair price falls between these two numbers —
+                            think of it as a confidence window, not an exact figure.
+                        </span>
+                    </span>
+                </div>
+                <div style="font-size:1.0rem;font-weight:800;color:#0f172a;
+                             letter-spacing:-0.025em;margin-top:1px;white-space:nowrap;">
                     {ci_display}
                 </div>
             </div>
-            <div style="width:1px;height:36px;background:#e8edf4;flex-shrink:0;"></div>
+            <div style="width:1px;background:#e8edf4;flex-shrink:0;"></div>
             <div style="flex:1;padding:10px 14px;">
                 <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
                              letter-spacing:0.09em;color:#94a3b8;">Your budget</div>
@@ -786,7 +823,7 @@ def _render_value_strip(bundle: dict, inputs):
                     {budget_display}
                 </div>
             </div>
-            <div style="width:1px;height:36px;background:#e8edf4;flex-shrink:0;"></div>
+            <div style="width:1px;background:#e8edf4;flex-shrink:0;"></div>
             <div style="flex:1;padding:10px 14px;background:{bg};border-left:2px solid {border};">
                 <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
                              letter-spacing:0.09em;color:#94a3b8;">Budget vs median</div>
