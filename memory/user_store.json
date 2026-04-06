@@ -1,11 +1,11 @@
 {
   "users": {
-    "t": {
-      "password": "t",
+    "user": {
+      "password": "password",
       "preferences": {}
     }
   },
   "user_histories": {
-    "t": []
+    "user": []
   }
 }

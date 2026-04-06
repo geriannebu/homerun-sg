@@ -34,6 +34,17 @@ def _format_sqft_from_sqm(val, fallback="—"):
     return f"{sqft:,} sqft" if sqft is not None else fallback
 
 
+_FLAT_TYPE_MIN_SQFT = {
+    "1 ROOM": 300,
+    "2 ROOM": 380,
+    "3 ROOM": 600,
+    "4 ROOM": 900,
+    "5 ROOM": 1100,
+    "EXECUTIVE": 1300,
+    "MULTI_GENERATION": 1100,
+}
+
+
 # ---------------------------------------------------------------------------
 # Feature DF (historical transactions 2017–2026)
 # ---------------------------------------------------------------------------
@@ -945,6 +956,16 @@ def _render_explore_flat_profile(inputs=None, listings_df: pd.DataFrame = None, 
     default_area_sqft = _sqm_to_sqft(default_area) or 969
     default_lease = int(inputs_lease) if inputs_lease else 70
 
+    # Auto-sync floor area to flat type minimum whenever flat type changes
+    current_flat_type_state = st.session_state.get("explore_profile_flat_type", default_flat_type)
+    auto_min_sqft = _FLAT_TYPE_MIN_SQFT.get(current_flat_type_state, 900)
+
+    if st.session_state.get("explore_profile_flat_type_prev") != current_flat_type_state:
+        st.session_state["explore_profile_area"] = auto_min_sqft
+        st.session_state["explore_profile_flat_type_prev"] = current_flat_type_state
+    elif "explore_profile_area" not in st.session_state:
+        st.session_state["explore_profile_area"] = int(default_area_sqft)
+
     c1, c2 = st.columns(2)
 
     with c1:
@@ -954,14 +975,23 @@ def _render_explore_flat_profile(inputs=None, listings_df: pd.DataFrame = None, 
             index=town_options.index(default_town),
             key="explore_profile_town",
         )
+
+        st.markdown(
+            f"<div style='font-size:0.78rem;color:#2563eb;background:#eff6ff;"
+            f"border:1px solid #bfdbfe;border-radius:8px;padding:6px 12px;"
+            f"margin-bottom:0.4rem;'>✨ Auto-set to ~{auto_min_sqft:,} sqft for a "
+            f"{current_flat_type_state}. Adjust freely.</div>",
+            unsafe_allow_html=True,
+        )
+
         hyp_floor_area_sqft = st.slider(
             "Floor area (sqft)",
             min_value=215,
             max_value=3229,
-            value=int(default_area_sqft),
             step=11,
             key="explore_profile_area",
         )
+
         hyp_storey = st.number_input(
             "Storey",
             min_value=1,
