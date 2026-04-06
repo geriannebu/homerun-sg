@@ -119,6 +119,12 @@ def _render_guest():
                         font-size:1.9rem;margin-bottom:1.1rem;">
                 👤
             </div>
+            <div style="display:inline-block;font-size:0.68rem;font-weight:700;
+                        letter-spacing:0.08em;text-transform:uppercase;
+                        background:rgba(255,180,0,0.12);color:#D97706;
+                        border-radius:8px;padding:3px 10px;margin-bottom:1rem;">
+                Guest mode
+            </div>
             <h2 style="font-size:1.7rem;font-weight:800;letter-spacing:-0.04em;
                        color:#1a1a2e;margin:0 0 0.5rem;">You're browsing as a guest</h2>
             <p style="font-size:0.9rem;color:#6b7280;max-width:380px;margin:0 auto 2rem;

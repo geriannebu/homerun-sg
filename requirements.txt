@@ -16,7 +16,7 @@ catboost==1.2.10
 
 # Streamlit transitive deps (pinned for reproducibility)
 altair==6.0.0
-pillow==11.1.0
+pillow==10.2.0
 protobuf==6.33.6
 pyarrow==23.0.1
 scipy==1.14.0

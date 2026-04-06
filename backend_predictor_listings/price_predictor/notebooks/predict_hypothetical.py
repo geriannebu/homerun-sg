@@ -17,7 +17,8 @@ _MODEL_DIR = _BASE / "models"
 _CI_OFFSETS_PATH = _BASE / "json_outputs" / "ci_offsets.json"
 
 # Constants
-SELECTED_MODEL = "ensemble_equal"  # lgbm/xgb/cb/ensemble_equal/ensemble_bg/ensemble_gr
+SELECTED_MODEL = "ensemble_equal"  # lgbm/xgb/cb/ensemble/ensemble_equal
+ENSEMBLE_WEIGHTS = None
 RPI_BASE = 100.0
 
 FEATURES = [
@@ -90,33 +91,24 @@ def _compute_rpi_current(df_rpi):
 
     return float(rpi_val)
 
-_ENSEMBLE_MODELS = ("ensemble_equal", "ensemble_bg", "ensemble_gr")
-
 def _load_models(model_name):
     models = {}
-    if model_name in ("lgbm", *_ENSEMBLE_MODELS):
+    if model_name in ("lgbm", "ensemble", "ensemble_equal"):
         print("Loading LightGBM model")
         with zipfile.ZipFile(_MODEL_DIR / "lgb_model.zip") as zf:
             with zf.open("lgb_model.joblib") as f:
                 models["lgbm"] = joblib.load(io.BytesIO(f.read()))
-    if model_name in ("xgb", *_ENSEMBLE_MODELS):
+    if model_name in ("xgb", "ensemble", "ensemble_equal"):
         print("Loading XGBoost model")
         m = xgb.XGBRegressor()
         m.load_model(str(_MODEL_DIR / "xgb_model.ubj"))
         models["xgb"] = m
-    if model_name in ("cb", *_ENSEMBLE_MODELS):
+    if model_name in ("cb", "ensemble", "ensemble_equal"):
         print("Loading CatBoost model")
         m = CatBoostRegressor()
         m.load_model(str(_MODEL_DIR / "cb_model.cbm"))
         models["cb"] = m
     return models
-
-# Ensemble weights: loaded once at init
-_ENSEMBLE_WEIGHTS = {
-    "ensemble_equal": np.array([1/3, 1/3, 1/3]),
-    "ensemble_bg":    np.load(_MODEL_DIR / "ensemble_weights_bg.npy"),
-    "ensemble_gr":    np.load(_MODEL_DIR / "ensemble_weights_gr.npy"),
-}
 
 # Initialisation: will run once upon import
 with zipfile.ZipFile(_FEATURE_DF_PATH) as _zf:
@@ -144,12 +136,13 @@ def _predict(models, X):
             X_cb[col] = X_cb[col].astype(str)
         return models["cb"].predict(Pool(X_cb, cat_features=cat_cols))
 
-    if SELECTED_MODEL in _ENSEMBLE_MODELS:
-        w = _ENSEMBLE_WEIGHTS[SELECTED_MODEL]
-        p_cb  = np.array(_cb(X), dtype=float)
-        p_xgb = np.array(models["xgb"].predict(X), dtype=float)
-        p_lgb = np.array(models["lgbm"].predict(X), dtype=float)
-        return w[0] * p_cb + w[1] * p_xgb + w[2] * p_lgb
+    if SELECTED_MODEL == "ensemble_equal":
+        return np.stack(
+            [_cb(X), models["xgb"].predict(X), models["lgbm"].predict(X)], axis=1
+        ).mean(axis=1)
+    if SELECTED_MODEL == "ensemble":
+        w = ENSEMBLE_WEIGHTS if ENSEMBLE_WEIGHTS is not None else np.ones(3) / 3
+        return w[0] * _cb(X) + w[1] * models["xgb"].predict(X) + w[2] * models["lgbm"].predict(X)
     if SELECTED_MODEL == "cb":
         return np.array(_cb(X), dtype=float)
     return np.array(models[SELECTED_MODEL].predict(X), dtype=float)
