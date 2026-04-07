@@ -216,20 +216,6 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
         asking_display = _safe_currency(asking_value)
         predicted_display = _safe_currency(predicted_value)
         diff_text = _safe_pct_text(diff)
-        is_explore_saved = str(row.get("comparison_source", "")).strip() == "Explore"
-        coming_soon_badge = ""
-        if is_explore_saved:
-            coming_soon_badge = (
-                "<span title='Coming soon: richer Explorer-flat scoring and insights will be added in a future upgrade.' "
-                "style='display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;"
-                "background:#f8fafc;color:#64748b;font-weight:700;font-size:0.73rem;"
-                "border:1px solid #e2e8f0;letter-spacing:0.01em;'>"
-                "<span style=\"display:inline-flex;align-items:center;justify-content:center;"
-                "width:16px;height:16px;border-radius:999px;background:#e2e8f0;color:#475569;"
-                "font-size:0.68rem;font-weight:800;line-height:1;\">i</span>"
-                "<span>Explorer insights soon</span>"
-                "</span>"
-            )
 
         card_html = (
             f"<div style='border:{border};background:{bg};border-radius:16px;padding:16px;margin-bottom:10px;"
@@ -254,7 +240,6 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
                 f"</div>"
                 f"<div style='display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;'>"
                     f"{tag_html}"
-                    f"{coming_soon_badge}"
                     f"<span style='font-size:0.76rem;color:#9ca3af;'>{_escape(diff_text)}</span>"
                     f"<span style='font-size:0.72rem;font-weight:700;color:{badge_col};margin-left:auto;'>"
                         f"{badge}"
@@ -277,32 +262,23 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
                 show_listing_detail(row.to_dict(), show_actions=False)
 
         with btn_b:
-            if is_explore_saved:
-                st.button(
-                    "Compare unavailable",
-                    key=f"sel_disabled_{section_title}_{lid}_{session_id}_{idx}",
-                    use_container_width=True,
-                    disabled=True,
-                    help="Coming soon: Explorer-saved flats are not available in Comparison yet.",
-                )
-            else:
-                sel_label = "✓ Selected" if is_sel else "Select"
-                if st.button(
-                    sel_label,
-                    key=f"sel_{section_title}_{lid}_{session_id}_{idx}",
-                    use_container_width=True,
-                ):
-                    cur = st.session_state.get("compare_selected_ids", [])
+            sel_label = "✓ Selected" if is_sel else "Select"
+            if st.button(
+                sel_label,
+                key=f"sel_{section_title}_{lid}_{session_id}_{idx}",
+                use_container_width=True,
+            ):
+                cur = st.session_state.get("compare_selected_ids", [])
 
-                    if is_sel:
-                        st.session_state.compare_selected_ids = [x for x in cur if x != lid]
+                if is_sel:
+                    st.session_state.compare_selected_ids = [x for x in cur if x != lid]
+                else:
+                    if len(cur) >= MAX_COMPARE:
+                        st.warning(f"You can compare up to {MAX_COMPARE} flats at a time.")
                     else:
-                        if len(cur) >= MAX_COMPARE:
-                            st.warning(f"You can compare up to {MAX_COMPARE} flats at a time.")
-                        else:
-                            st.session_state.compare_selected_ids = cur + [lid]
+                        st.session_state.compare_selected_ids = cur + [lid]
 
-                    st.rerun()
+                st.rerun()
 
         with btn_c:
             if st.button(
@@ -442,17 +418,12 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
         )
         return
 
-    selected_ids = [
-        lid for lid in st.session_state.get("compare_selected_ids", [])
-        if lid in set(
-            liked_df.loc[
-                liked_df["comparison_source"].fillna("Discover") != "Explore",
-                "listing_id",
-            ].astype(str)
-        )
-    ]
-    st.session_state.compare_selected_ids = selected_ids
-    all_ids = list(liked_df["listing_id"].astype(str).values)
+    valid_ids = set(liked_df["listing_id"].astype(str).tolist())
+    current_selected = st.session_state.get("compare_selected_ids", [])
+    selected_ids = [x for x in current_selected if str(x) in valid_ids]
+
+    if selected_ids != current_selected:
+        st.session_state["compare_selected_ids"] = selected_ids
 
     c1, c2 = st.columns([3, 1])
 

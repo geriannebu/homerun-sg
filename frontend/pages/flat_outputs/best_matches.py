@@ -458,6 +458,10 @@ def render_listing_tab(listings_df: pd.DataFrame):
     for amen, icon in AMENITY_ICONS.items():
         val = current_card.get(amen, 0)
 
+        border = "#cbd5e1"
+        bg = "#f8fafc"
+        text = "#64748b"
+
         if val >= 65:
             border = "#059669"
             bg = "#ecfdf5"
@@ -466,10 +470,6 @@ def render_listing_tab(listings_df: pd.DataFrame):
             border = "#d97706"
             bg = "#fff7ed"
             text = "#d97706"
-        else:
-            border = "#cbd5e1"
-            bg = "#f8fafc"
-            text = "#64748b"
 
         label = AMENITY_LABELS.get(amen, amen)
         badges += (
@@ -560,6 +560,12 @@ def _render_deck_done(session: dict, listings_df: pd.DataFrame):
                     s["unseen_ids"] = list(listings_df["listing_id"].astype(str).values)
                     s["liked_ids"] = []
                     s["passed_ids"] = []
+                    s["extra_saved_rows"] = []
+
+            st.session_state["compare_selected_ids"] = []
+            st.session_state["selected_shortlist_for_compare"] = []
+            st.session_state["custom_compare_rows"] = []
+
             st.rerun()
 
 
