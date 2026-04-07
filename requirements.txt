@@ -1,0 +1,26 @@
+# Core app
+streamlit==1.55.0
+pandas==2.2.2
+numpy==2.0.0
+pydeck==0.9.1
+
+# ML prediction (Explore tab — ensemble model)
+scikit-learn==1.8.0
+joblib==1.5.3
+lightgbm==4.6.0
+xgboost==3.2.0
+catboost==1.2.10
+
+# NOTE (Mac only): XGBoost requires OpenMP. Run once after pip install:
+#   brew install libomp
+
+# Streamlit transitive deps (pinned for reproducibility)
+altair==6.0.0
+pillow==11.1.0
+protobuf==6.33.6
+pyarrow==23.0.1
+scipy==1.14.0
+threadpoolctl==3.6.0
+tornado==6.5.5
+watchdog==6.0.0
+click==8.3.1

@@ -1,0 +1,13 @@
+pandas
+numpy
+requests
+scikit-learn
+matplotlib
+scipy
+catboost
+xgboost
+lightgbm
+optuna
+python-dotenv
+joblib
+statsmodels
