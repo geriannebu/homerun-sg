@@ -711,7 +711,8 @@ def _render_discover():
 
     session = get_active_session()
     if session is None:
-        st.info("No active session. Complete onboarding to get started.")
+        st.session_state.onboarding_complete = False
+        st.rerun()
         return
 
     bundle     = session["bundle"]
