@@ -148,6 +148,16 @@ At a high level it combines:
 - value scoring against predicted price
 - user preference weights from onboarding
 - a ranking profile alpha that balances amenity fit vs value
+  
+### Updating Walking Times
+Walking times are precomputed and stored in backend_predictor_listings/price_predictor/csv_outputs/listings_with_walking_times_full.csv. Only regenerate this file if the listings dataset changes.
+
+To refresh, run backend/services/preload_walking_times.py from the repo root. This requires a OneMap account — register at onemap.gov.sg and set your credentials as environment variables before running:
+bashexport ONEMAP_EMAIL="your@email.com"
+export ONEMAP_PASSWORD="yourpassword"
+
+Then in your terminal, run: python backend/services/preload_walking_times.py
+The script supports checkpoint resuming — if interrupted, rerun the same command and it will pick up where it left off.
 
 ### Explore pricing
 Explore has two pricing modes:
