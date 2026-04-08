@@ -711,8 +711,7 @@ def _render_discover():
 
     session = get_active_session()
     if session is None:
-        st.session_state.onboarding_complete = False
-        st.rerun()
+        _run_onboarding()
         return
 
     bundle     = session["bundle"]
