@@ -854,7 +854,7 @@ def _render_value_strip(bundle: dict, inputs):
 # ── Compare ───────────────────────────────────────────────────────────────────
 
 def _render_compare():
-    from frontend.state.session import get_active_session_liked_df, get_active_session
+    from frontend.state.session import get_liked_df, get_active_session
 
     selected_ids = st.session_state.get("compare_selected_ids", [])
 
@@ -863,9 +863,15 @@ def _render_compare():
         render_comparison_page(inputs=None, listings_df=pd.DataFrame())
         return
 
-    liked_df = get_active_session_liked_df()
+    liked_df = get_liked_df()
 
-    extra_rows = session.get("extra_saved_rows", [])
+    # Collect extra_saved_rows (Explore saves) from all sessions
+    extra_rows = []
+    for s in st.session_state.get("search_sessions", []):
+        for row in s.get("extra_saved_rows", []):
+            enriched = dict(row)
+            enriched.setdefault("session_id", s["session_id"])
+            extra_rows.append(enriched)
     if extra_rows:
         extra_df = pd.DataFrame(extra_rows)
         liked_df = pd.concat([liked_df, extra_df], ignore_index=True, sort=False)

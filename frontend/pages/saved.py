@@ -13,7 +13,7 @@ import pydeck as pdk
 import numpy as np
 
 from backend.utils.formatters import fmt_sgd, valuation_tag_html
-from frontend.state.session import get_active_session_liked_df, get_active_session
+from frontend.state.session import get_liked_df, get_active_session
 from frontend.components.listing_detail import show_listing_detail, _val_style
 from backend.utils.constants import AMENITY_COLORS, AMENITY_LABELS, TOWN_COORDS
 
@@ -149,9 +149,10 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
     if section_df.empty:
         return
 
+    display_title = section_title.split("__")[0] if "__" in section_title else section_title
     st.markdown(
         f"<div style='display:flex;align-items:center;gap:10px;margin:1rem 0 0.7rem;'>"
-        f"<div style='font-size:0.9rem;font-weight:800;color:#0f172a;'>{section_title}</div>"
+        f"<div style='font-size:0.9rem;font-weight:800;color:#0f172a;'>{display_title}</div>"
         f"<div style='font-size:0.72rem;color:#9ca3af;background:#f7f8fa;"
         f"border:1px solid #e4e7ed;border-radius:999px;padding:2px 8px;'>"
         f"{len(section_df)} saved</div></div>",
@@ -310,18 +311,19 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
                 key=f"rm_{section_title}_{lid}_{session_id}_{idx}",
                 use_container_width=True,
             ):
-                session = get_active_session()
-
-                if session is not None:
-                    if lid in session.get("liked_ids", []):
-                        session["liked_ids"].remove(lid)
-
-                    if "extra_saved_rows" in session:
-                        session["extra_saved_rows"] = [
-                            r for r in session["extra_saved_rows"]
+                target_session = next(
+                    (s for s in st.session_state.get("search_sessions", [])
+                     if s["session_id"] == session_id),
+                    None,
+                )
+                if target_session is not None:
+                    if lid in target_session.get("liked_ids", []):
+                        target_session["liked_ids"].remove(lid)
+                    if "extra_saved_rows" in target_session:
+                        target_session["extra_saved_rows"] = [
+                            r for r in target_session["extra_saved_rows"]
                             if str(r.get("listing_id", "")) != str(lid)
                         ]
-
                 st.session_state.compare_selected_ids = [
                     x for x in selected_ids if x != lid
                 ]
@@ -329,12 +331,16 @@ def _render_saved_section(section_df: pd.DataFrame, section_title: str, selected
 
 
 def render_saved_page():
-    session = get_active_session()
-    liked_df = get_active_session_liked_df()
+    liked_df = get_liked_df()
 
+    # Collect extra_saved_rows (Explore saves) from every session
     extra_rows = []
-    if session:
-        extra_rows = session.get("extra_saved_rows", [])
+    for s in st.session_state.get("search_sessions", []):
+        for row in s.get("extra_saved_rows", []):
+            enriched = dict(row)
+            enriched.setdefault("session_id", s["session_id"])
+            enriched.setdefault("session_label", s["label"])
+            extra_rows.append(enriched)
 
     if extra_rows:
         extra_df = pd.DataFrame(extra_rows)
@@ -345,13 +351,11 @@ def render_saved_page():
     else:
         liked_df["comparison_source"] = liked_df["comparison_source"].fillna("Discover")
 
-    session_label = session["label"] if session else "No active session"
-
     st.markdown(
         "<h2 style='font-size:1.65rem;font-weight:800;letter-spacing:-0.03em;"
         "color:#0f172a;margin-bottom:0.3rem;'>Saved flats</h2>"
         "<p style='font-size:0.88rem;color:#9ca3af;margin-bottom:1.4rem;'>"
-        f"Showing saved flats for: <strong>{session_label}</strong></p>",
+        "All saved flats, grouped by search session.</p>",
         unsafe_allow_html=True,
     )
 
@@ -798,8 +802,33 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
         else:
             st.info("No saved flats available to show on the map.")
 
-    discover_df = liked_df[liked_df["comparison_source"] == "Discover"].copy()
-    explore_df = liked_df[liked_df["comparison_source"] == "Explore"].copy()
+    all_sessions = st.session_state.get("search_sessions", [])
+    active_session_id = st.session_state.get("active_session_id")
 
-    _render_saved_section(discover_df, "Saved from Discover", selected_ids)
-    _render_saved_section(explore_df, "Saved from Explore", selected_ids)
+    for s in reversed(all_sessions):
+        sid = s["session_id"]
+        is_active = sid == active_session_id
+        session_df = liked_df[liked_df["session_id"].astype(str) == str(sid)].copy()
+        if session_df.empty:
+            continue
+
+        active_badge_html = (
+            " <span style='font-size:0.68rem;font-weight:700;color:#059E87;"
+            "background:#e6f7f4;border:1px solid #a7e8dc;border-radius:999px;"
+            "padding:2px 7px;'>Active</span>"
+            if is_active else ""
+        )
+        st.markdown(
+            f"<div style='font-size:0.9rem;font-weight:800;color:#0f172a;"
+            f"margin:1.6rem 0 0.15rem;border-top:1px solid #e4e7ed;padding-top:1.1rem;'>"
+            f"{_escape(s['label'])}{active_badge_html}</div>"
+            f"<div style='font-size:0.75rem;color:#9ca3af;margin-bottom:0.5rem;'>"
+            f"{_escape(s['created_at'])}</div>",
+            unsafe_allow_html=True,
+        )
+
+        discover_df = session_df[session_df["comparison_source"] == "Discover"].copy()
+        explore_df = session_df[session_df["comparison_source"] == "Explore"].copy()
+
+        _render_saved_section(discover_df, f"Saved from Discover__{sid}", selected_ids)
+        _render_saved_section(explore_df, f"Saved from Explore__{sid}", selected_ids)
