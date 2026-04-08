@@ -112,18 +112,21 @@ def _render_auth():
 def _render_guest():
     st.markdown(
         """
-        <div style="text-align:center;padding:2.8rem 0 1.6rem;">
-            <div style="display:inline-flex;align-items:center;justify-content:center;
-                        width:60px;height:60px;border-radius:18px;
-                        background:#FFF0F1;border:1.5px solid rgba(255,68,88,0.20);
-                        font-size:1.9rem;margin-bottom:1.1rem;">
+        <div style="text-align:center; padding:2.8rem 0 1.6rem;">
+            <div style="display:inline-flex; align-items:center; justify-content:center;
+                        width:60px; height:60px; border-radius:18px;
+                        background:#FFF0F1; border:1.5px solid rgba(255,68,88,0.20);
+                        font-size:1.9rem; margin-bottom:1.1rem;">
                 👤
             </div>
-            
-            <h2 style="font-size:1.7rem;font-weight:800;letter-spacing:-0.04em;
-                       color:#1a1a2e;margin:0 0 0.5rem;">You're browsing as a guest</h2>
-            <p style="font-size:0.9rem;color:#6b7280;max-width:380px;margin:0 auto 2rem;
-                      line-height:1.65;">
+
+            <h2 style="font-size:1.7rem; font-weight:800; letter-spacing:-0.04em;
+                       color:#1a1a2e; margin:0 0 0.5rem 0;">
+                You're browsing as a guest
+            </h2>
+
+            <p style="font-size:0.9rem; color:#6b7280; max-width:380px;
+                      margin:0 auto 2rem auto; line-height:1.65;">
                 Create a free account to save your preferences, keep your search history,
                 and pick up where you left off next time.
             </p>
