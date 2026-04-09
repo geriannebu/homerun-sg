@@ -243,8 +243,8 @@ def _serialize_card(row, inputs, budget=None, deck_df: pd.DataFrame | None = Non
     elif diff <= 10:
         label = "Slightly High"
     else:
-        label = "Overpriced"    
-        
+        label = "Overpriced"
+
     town = str(row.get("town", ""))
 
     budget_val = budget if budget is not None else getattr(inputs, "budget", None)
@@ -275,6 +275,19 @@ def _serialize_card(row, inputs, budget=None, deck_df: pd.DataFrame | None = Non
         is_within_budget = budget_gap >= 0
 
     primary_why, secondary_why = _why_match(row, inputs, deck_df=deck_df)
+
+    lat = pd.to_numeric(row.get("lat"), errors="coerce")
+    lon = pd.to_numeric(row.get("lon"), errors="coerce")
+
+    if pd.notna(lat) and pd.notna(lon):
+        map_url = (
+            f"https://www.openstreetmap.org/export/embed.html"
+            f"?bbox={lon-0.01},{lat-0.006},{lon+0.01},{lat+0.006}"
+            f"&layer=mapnik&marker={lat},{lon}"
+        )
+    else:
+        map_url = _map_url(town)
+
     card = {
         "id": str(row.get("listing_id", "")),
         "listing_id": str(row.get("listing_id", "")),
@@ -290,7 +303,7 @@ def _serialize_card(row, inputs, budget=None, deck_df: pd.DataFrame | None = Non
         "diff_pct": round(diff, 1),
         "label": label,
         "label_color": _val_color(label),
-        "map_url": _map_url(town),
+        "map_url": map_url,
         "why_primary": primary_why,
         "why_secondary": secondary_why,
         "final_score": float(row.get("final_score", 0)) * 100,
@@ -307,6 +320,7 @@ def _serialize_card(row, inputs, budget=None, deck_df: pd.DataFrame | None = Non
         card[amen] = float(row.get(f"walk_acc_{amen}", 0)) * 100
 
     return card
+
 
 
 def _get_ranked_unseen_df(listings_df: pd.DataFrame, unseen_ids: list) -> pd.DataFrame:
