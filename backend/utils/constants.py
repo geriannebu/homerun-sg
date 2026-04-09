@@ -12,10 +12,6 @@ TOWNS = [
 
 FLAT_TYPES = ["1 ROOM", "2 ROOM", "3 ROOM", "4 ROOM", "5 ROOM", "EXECUTIVE", "MULTI-GENERATION"]
 
-# ---------------------------------------------------------------------------
-# School Options
-# ---------------------------------------------------------------------------
-SCHOOL_OPTIONS = ["Any", "Primary schools", "Secondary schools", "Both"]
 
 # ---------------------------------------------------------------------------
 # Amenity Labels
