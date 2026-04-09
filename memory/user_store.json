@@ -3,52 +3,54 @@
     "homerun": {
       "password": "homerun",
       "preferences": {
-        "pref_budget": 650000,
+        "pref_budget": 1000000,
         "pref_budget_flexible": false,
         "pref_flat_type": "4 ROOM",
         "pref_flat_types": [
-          "4 ROOM"
+          "5 ROOM"
         ],
         "pref_floor_area": 83.6,
         "pref_floor_area_sqft": 900,
+        "pref_floor_area_sqft_manual": true,
         "pref_floor_area_skip": false,
         "pref_remaining_lease": 60,
-        "pref_town": null,
+        "pref_town": [
+          "BUKIT MERAH",
+          "QUEENSTOWN"
+        ],
         "pref_school_scope": "Any",
-        "pref_priority_mode": "balanced",
+        "pref_priority_mode": "convenience",
         "pref_amenity_rank": [
-          "mall",
           "bus",
-          "supermarket",
           "hawker",
+          "supermarket",
           "train",
+          "mall",
           "polyclinic",
           "primary_school"
         ],
         "pref_amenity_weights": {
-          "train": 0.06666666666666667,
-          "bus": 0.26666666666666666,
-          "hawker": 0.13333333333333333,
-          "mall": 0.3333333333333333,
-          "supermarket": 0.2,
+          "train": 0.0,
+          "bus": 0.5,
+          "hawker": 0.3333333333333333,
+          "mall": 0.0,
+          "supermarket": 0.16666666666666666,
           "polyclinic": 0.0,
           "primary_school": 0.0
         },
         "pref_quiz_scores": {
-          "train": 0.0452045204520452,
-          "bus": 0.22622262226222623,
-          "hawker": 0.12221222122212222,
-          "mall": 0.3801380138013801,
-          "supermarket": 0.22622262226222623,
+          "train": 0.0,
+          "bus": 0.3611,
+          "hawker": 0.3611,
+          "mall": 0.0,
+          "supermarket": 0.2778,
           "polyclinic": 0.0,
           "primary_school": 0.0
         },
         "pref_selected_amenities": [
-          "mall",
           "bus",
-          "supermarket",
           "hawker",
-          "train"
+          "supermarket"
         ],
         "pref_rank_manually_adjusted": false,
         "pref_landmark_postals": []

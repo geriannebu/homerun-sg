@@ -80,7 +80,7 @@ def get_top_towns(inputs: UserInputs, top_n: int = 5):
     ranking_profile = getattr(inputs, "ranking_profile", "balanced")
     alpha = RANKING_ALPHA.get(ranking_profile, 0.50)
 
-    preferred_towns = [inputs.town.strip().upper()] if getattr(inputs, "town", None) else []
+    preferred_towns = [t.strip().upper() for t in (inputs.town or []) if t.strip()] if getattr(inputs, "town", None) else []
 
     rooms = []
     flat_types = getattr(inputs, "flat_types", None)

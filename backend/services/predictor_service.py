@@ -17,9 +17,9 @@ DEFAULT_AMENITY_WEIGHTS = {
 def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced") -> dict:
     listings_df, _ = load_all_data()
 
-    town = (inputs.town or "").strip().upper() or None
-    if town:
-        listings_df = listings_df[listings_df["town"] == town]
+    towns = [t.strip().upper() for t in (inputs.town or []) if t.strip()]
+    if towns:
+        listings_df = listings_df[listings_df["town"].isin(towns)]
 
     flat_types = getattr(inputs, "flat_types", None)
     if flat_types:
@@ -66,7 +66,7 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
         alpha=alpha,
         budget=budget or 10**9,
         rooms=rooms,
-        preferred_towns=[town] if town else [],
+        preferred_towns=towns,
         min_sqft=min_sqft,
         top_n=10,
     )
@@ -109,7 +109,7 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
         recent_median_transacted = 0
 
     recommendations_df = None
-    if not town:
+    if not towns:
         recommendations_df = recommend_towns_real(
             inputs=inputs,
             df=scored_listings,
@@ -118,8 +118,8 @@ def get_prediction_bundle(inputs: UserInputs, ranking_profile: str = "balanced")
             top_n=5,
         )
 
-    mode = "town" if town else "recommendation"
-    mode_label = f"Town mode: {town}" if town else "Recommendation mode"
+    mode = "town" if towns else "recommendation"
+    mode_label = f"Town mode: {', '.join(towns)}" if towns else "Recommendation mode"
 
     return {
         "predicted_price":          predicted_price,

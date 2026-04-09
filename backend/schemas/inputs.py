@@ -8,7 +8,7 @@ class UserInputs:
     flat_types: List[str]               # one or more flat types selected by user
     floor_area_sqm: Optional[float]     # None = no minimum requirement
     remaining_lease_years: int          # NEW: replaces lease_commence_year
-    town: Optional[str]
+    town: Optional[List[str]]
     school_scope: str
     amenity_weights: Dict[str, float]   # normalised 0-1 weights derived from rank
     amenity_rank: List[str]             # NEW: hard-ranked list, index 0 = top priority

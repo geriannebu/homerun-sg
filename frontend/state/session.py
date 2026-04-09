@@ -19,7 +19,7 @@ def init_session_state():
         "pref_flat_type": None,
         "pref_floor_area": None,
         "pref_remaining_lease": None,
-        "pref_town": None,              # None = recommendation mode
+        "pref_town": [],                # [] = recommendation mode
         "pref_school_scope": "Any",
         "pref_amenity_rank": [],        # list of amenity keys, index 0 = top priority
         "pref_landmark_postals": [],
@@ -66,9 +66,15 @@ def init_session_state():
 
 
 def make_session_label(inputs) -> str:
-    town = inputs.town or "Reco mode"
+    towns = inputs.town or []
+    if len(towns) == 1:
+        town_label = towns[0].title()
+    elif len(towns) > 1:
+        town_label = f"{towns[0].title()} +{len(towns) - 1}"
+    else:
+        town_label = "Reco mode"
     date = datetime.now().strftime("%d %b")
-    return f"{inputs.flat_type} · {town} · {date}"
+    return f"{inputs.flat_type} · {town_label} · {date}"
 
 
 def create_search_session(inputs, bundle, map_bundle) -> str:

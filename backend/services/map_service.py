@@ -69,7 +69,7 @@ def get_map_bundle(inputs: UserInputs, recommendations_df: pd.DataFrame):
     selected_towns = []
 
     if inputs.town:
-        selected_towns = [inputs.town]
+        selected_towns = list(inputs.town)
     elif recommendations_df is not None and not recommendations_df.empty:
         selected_towns = recommendations_df["town"].head(5).tolist()
 
