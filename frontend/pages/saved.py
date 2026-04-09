@@ -474,23 +474,39 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
     st.markdown("#### Saved flats map")
 
     with st.expander("View saved flats map", expanded=False):
-        st.caption("Showing your saved flats for the current session, with nearby amenities.")
+        st.caption("Showing all your saved flats across every search session, with nearby amenities.")
 
-        latest_inputs = st.session_state.get("latest_inputs")
-        latest_map_bundle = st.session_state.get("latest_map_bundle")
+        # Merge amenities from every session that has saved flats so the
+        # overlay is coherent regardless of which session's towns are shown.
+        all_sessions = st.session_state.get("search_sessions", [])
+        sessions_with_saves = {
+            s["session_id"]
+            for s in all_sessions
+            if s.get("liked_ids") or s.get("extra_saved_rows")
+        }
+        amenity_frames = []
+        for s in all_sessions:
+            if s["session_id"] not in sessions_with_saves:
+                continue
+            mb = s.get("map_bundle")
+            if mb and "amenities_df" in mb:
+                af = mb["amenities_df"]
+                if not af.empty:
+                    amenity_frames.append(af)
 
         visible = []
         amenities_df = pd.DataFrame()
         visible_color_map = {}
 
-        if latest_map_bundle is not None:
-            visible = _selected_amenities_for_saved_map()
-            amenities_df = latest_map_bundle.get("amenities_df", pd.DataFrame())
-
-            if not amenities_df.empty and "amenity_type" in amenities_df.columns:
-                amenities_df = amenities_df.copy()
+        if amenity_frames:
+            amenities_df = pd.concat(amenity_frames, ignore_index=True)
+            if "amenity_type" in amenities_df.columns:
                 amenities_df["amenity_type"] = amenities_df["amenity_type"].apply(_normalize_amenity_key)
-
+                # Drop duplicate amenity rows (same type + lat/lon)
+                amenities_df = amenities_df.drop_duplicates(
+                    subset=["amenity_type", "lat", "lon"] if {"lat", "lon"}.issubset(amenities_df.columns) else ["amenity_type"]
+                ).reset_index(drop=True)
+            visible = _selected_amenities_for_saved_map()
             visible_color_map = _distinct_visible_amenity_colors(visible)
 
         saved_points = liked_df.copy()

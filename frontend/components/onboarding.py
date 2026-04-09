@@ -787,8 +787,8 @@ def _render_town():
     _step_label(5)
     _heading("Do you have any preferred town in mind?", "Skip to let us recommend the best match.")
 
-    current = st.session_state.get("pref_town")
-    no_pref = current is None
+    current = st.session_state.get("pref_town") or []
+    no_pref = not current
 
     if st.button(
         "🗺️  Recommend the best town for me",
@@ -796,23 +796,23 @@ def _render_town():
         use_container_width=True,
         type="primary" if no_pref else "secondary",
     ):
-        st.session_state.pref_town = None
+        st.session_state.pref_town = []
         st.rerun()
 
     st.markdown(
-        "<div style='margin:10px 0 6px;font-size:0.8rem;color:#9ca3af;font-weight:600;'>OR PICK A TOWN</div>",
+        "<div style='margin:10px 0 6px;font-size:0.8rem;color:#9ca3af;font-weight:600;'>OR PICK ONE OR MORE TOWNS</div>",
         unsafe_allow_html=True
     )
 
     sorted_towns = sorted(TOWNS)
-    town_choice = st.selectbox(
-        "Town",
-        ["— select —"] + sorted_towns,
-        index=0 if current is None else (sorted_towns.index(current) + 1 if current in TOWNS else 0),
+    town_choices = st.multiselect(
+        "Towns",
+        sorted_towns,
+        default=[t for t in current if t in TOWNS],
         label_visibility="collapsed",
     )
-    if town_choice != "— select —" and town_choice != current:
-        st.session_state.pref_town = town_choice
+    if town_choices != current:
+        st.session_state.pref_town = town_choices
         st.rerun()
 
     if _next_btn(key="town_next"):
@@ -1196,6 +1196,13 @@ def apply_preferences_to_session(preferences: dict | None):
         if len(flat_types) == 1:
             st.session_state.pref_flat_type = flat_types[0]
 
+    # Migrate pref_town: old format was a string, new format is a list
+    town_val = st.session_state.get("pref_town")
+    if isinstance(town_val, str):
+        st.session_state.pref_town = [town_val] if town_val else []
+    elif town_val is None:
+        st.session_state.pref_town = []
+
     st.session_state.onboarding_complete = bool(st.session_state.get("pref_amenity_rank"))
     return True
 
@@ -1244,7 +1251,7 @@ def get_preferences_display() -> dict:
             else "No requirement"
         ),
         "Min. lease": f"{st.session_state.get('pref_remaining_lease') or '—'} years remaining",
-        "Town": st.session_state.get("pref_town") or "Recommendation mode",
+        "Town": ", ".join(st.session_state.get("pref_town") or []) or "Recommendation mode",
         "Priority": {
             "save_money": "Save money 💵",
             "convenience": "Convenience 🚶⏱️",

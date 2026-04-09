@@ -64,12 +64,12 @@ def _why_match(row, inputs, deck_df: pd.DataFrame | None = None) -> tuple[str, s
     top_amenities = rank[:3] if rank else []
 
     diff = pd.to_numeric(row.get("valuation_pct"), errors="coerce")
-    town_pref = getattr(inputs, "town", None)
+    town_pref = getattr(inputs, "town", None) or []
     min_lease = getattr(inputs, "remaining_lease_years", None)
     min_area = getattr(inputs, "floor_area_sqm", None)
 
     flat_town = str(row.get("town", "")).strip().upper()
-    pref_town = str(town_pref).strip().upper() if town_pref else None
+    pref_towns = {t.strip().upper() for t in town_pref if t.strip()}
 
     lease_val = pd.to_numeric(
         row.get("remaining_lease_years", row.get("remaining_lease")),
@@ -194,10 +194,10 @@ def _why_match(row, inputs, deck_df: pd.DataFrame | None = None) -> tuple[str, s
         if area_bonus >= 8:
             secondary_candidates.append(("larger floor area than your minimum", 70 + min(8, area_bonus)))
 
-    if pref_town and flat_town == pref_town:
+    if pref_towns and flat_town in pref_towns:
         if deck_df is not None and "town" in deck_df.columns:
             deck_towns = deck_df["town"].fillna("").astype(str).str.upper()
-            share_in_pref_town = (deck_towns == pref_town).mean()
+            share_in_pref_town = deck_towns.isin(pref_towns).mean()
             if share_in_pref_town < 0.75:
                 secondary_candidates.append(("in your preferred town", 64))
         else:

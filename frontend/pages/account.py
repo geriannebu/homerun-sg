@@ -417,30 +417,28 @@ def _pref_row_lease():
 
 
 def _pref_row_town():
-    val   = st.session_state.get("pref_town")
-    label = val if val else "Recommendation mode"
+    val   = st.session_state.get("pref_town") or []
+    label = ", ".join(val) if val else "Recommendation mode"
     open_ = _row_header("Town", label, "town")
     if not open_:
         return
 
     if st.button("🗺️  Use recommendation mode", key="edit_town_reco",
                  use_container_width=True):
-        st.session_state.pref_town = None
+        st.session_state.pref_town = []
         _save_and_regenerate()
 
-    st.markdown("<div style='margin:6px 0 4px;font-size:0.74rem;color:#9ca3af;font-weight:600;'>OR PICK A SPECIFIC TOWN</div>", unsafe_allow_html=True)
-    current_idx = (sorted(TOWNS).index(val) + 1) if val in (TOWNS or []) else 0
-    town_choice = st.selectbox(
-        "Town", ["— select —"] + sorted(TOWNS),
-        index=current_idx, key="edit_town_select", label_visibility="collapsed",
+    st.markdown("<div style='margin:6px 0 4px;font-size:0.74rem;color:#9ca3af;font-weight:600;'>OR PICK ONE OR MORE TOWNS</div>", unsafe_allow_html=True)
+    town_choices = st.multiselect(
+        "Towns", sorted(TOWNS),
+        default=[t for t in val if t in TOWNS],
+        key="edit_town_select", label_visibility="collapsed",
     )
-    if town_choice != "— select —":
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("Save & generate new deck →", key="save_town",
-                         type="primary", use_container_width=True):
-                st.session_state.pref_town = town_choice
-                _save_and_regenerate()
+    if town_choices:
+        if st.button("Save & generate new deck →", key="save_town",
+                     type="primary", use_container_width=True):
+            st.session_state.pref_town = town_choices
+            _save_and_regenerate()
 
 
 def _pref_row_amenity_rank():
