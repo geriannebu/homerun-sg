@@ -41,7 +41,7 @@ _FLAT_TYPE_MIN_SQFT = {
     "4 ROOM": 900,
     "5 ROOM": 1100,
     "EXECUTIVE": 1300,
-    "MULTI_GENERATION": 1100,
+    "MULTI-GENERATION": 1100,
 }
 
 
@@ -941,7 +941,7 @@ def _render_explore_flat_profile(inputs=None, listings_df: pd.DataFrame = None, 
         "QUEENSTOWN", "SEMBAWANG", "SENGKANG", "SERANGOON", "TAMPINES",
         "TOA PAYOH", "WOODLANDS", "YISHUN"
     ]
-    flat_type_options = ["1 ROOM", "2 ROOM", "3 ROOM", "4 ROOM", "5 ROOM", "EXECUTIVE", "MULTI_GENERATION"]
+    flat_type_options = ["1 ROOM", "2 ROOM", "3 ROOM", "4 ROOM", "5 ROOM", "EXECUTIVE", "MULTI-GENERATION"]
 
     inputs_town = getattr(inputs, "town", None) if inputs is not None else None
     inputs_flat_type = getattr(inputs, "flat_type", None) if inputs is not None else None
