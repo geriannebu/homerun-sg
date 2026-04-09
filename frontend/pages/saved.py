@@ -708,7 +708,6 @@ html,body{width:100%;height:100%;font-family:'DM Sans',-apple-system,sans-serif;
                                     f"<b>{_escape(amenity_label)}</b><br/>"
                                     f"<b>Town:</b> {_escape(r.get('town', '—'))}<br/>"
                                     f"<b>Name:</b> {_escape(r.get('amenity_label', '—'))}<br/>"
-                                    f"<b>Postal code:</b> {_escape(r.get('postal_code', '—'))}"
                                 ),
                                 axis=1,
                             )

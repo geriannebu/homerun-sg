@@ -80,15 +80,13 @@ def build_tooltip_html(df: pd.DataFrame, point_type: str, visible_types=None) ->
             {
                 "town": "",
                 "amenity_label": "",
-                "postal_code": "",
             },
         )
         out["tooltip_html"] = out.apply(
             lambda r: (
                 f"<b>Amenity</b><br/>"
                 f"<b>Town:</b> {r['town']}<br/>"
-                f"<b>Name:</b> {r['amenity_label']}<br/>"
-                f"<b>Postal code:</b> {r['postal_code']}"
+                f"<b>Name:</b> {r['amenity_label']}"
             ),
             axis=1,
         )

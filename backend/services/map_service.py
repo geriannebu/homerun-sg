@@ -34,7 +34,6 @@ def mock_amenities_for_town(towns):
                     "town": town,
                     "amenity_type": amenity_type,
                     "amenity_label": AMENITY_LABELS[amenity_type],
-                    "postal_code": f"{np.random.randint(100000, 999999)}",
                     "lat": base_lat + np.random.uniform(-0.015, 0.015),
                     "lon": base_lon + np.random.uniform(-0.015, 0.015),
                 })
